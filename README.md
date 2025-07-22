@@ -200,8 +200,78 @@ go build -o terraform-provider-pihole
 
 ### Testing
 
+#### Unit Tests
+
+Run unit tests (no Pi-hole instance required):
+
 ```bash
-go test -v ./...
+go test -v ./internal/provider
+```
+
+#### Acceptance Tests
+
+Acceptance tests require a running Pi-hole instance. They can be run in two ways:
+
+##### Option 1: Local Pi-hole Instance
+
+If you have a Pi-hole running locally:
+
+```bash
+# Set environment variables for your Pi-hole instance
+export PIHOLE_URL="http://your-pihole-ip:80"  # or https://your-pihole:443
+export PIHOLE_PASSWORD="your-admin-password"
+
+# Run acceptance tests
+TF_ACC=1 go test -v ./internal/provider -run TestAcc -timeout 30m
+```
+
+##### Option 2: Docker Pi-hole (Recommended)
+
+Use Docker to run a temporary Pi-hole for testing:
+
+```bash
+# Start a Pi-hole container for testing
+docker run -d \
+  --name pihole-test \
+  -p 8080:80 \
+  -p 8053:53/tcp \
+  -p 8053:53/udp \
+  -e WEBPASSWORD=test-password \
+  -e VIRTUAL_HOST=localhost \
+  pihole/pihole:latest
+
+# Wait for Pi-hole to be ready (may take 30-60 seconds)
+timeout 60 bash -c 'until curl -f http://localhost:8080/admin/; do sleep 2; done'
+
+# Set environment variables
+export PIHOLE_URL="http://localhost:8080"
+export PIHOLE_PASSWORD="test-password"
+
+# Run acceptance tests
+TF_ACC=1 go test -v ./internal/provider -run TestAcc -timeout 30m
+
+# Clean up when done
+docker stop pihole-test && docker rm pihole-test
+```
+
+##### Test Behavior
+
+- **Without PIHOLE_URL**: Acceptance tests automatically skip, only unit tests run
+- **With PIHOLE_URL**: Tests connect to the specified Pi-hole instance and create/modify real DNS records
+- **Test cleanup**: Tests automatically clean up resources they create
+- **Timeout**: Use `-timeout 30m` as acceptance tests may take time due to rate limiting
+
+##### Running Specific Test Suites
+
+```bash
+# Run only DNS record tests
+TF_ACC=1 go test -v ./internal/provider -run TestAccPiholeDNSRecord -timeout 30m
+
+# Run only CNAME record tests  
+TF_ACC=1 go test -v ./internal/provider -run TestAccPiholeCNAMERecord -timeout 30m
+
+# Run only provider configuration tests (no Pi-hole required)
+TF_ACC=1 go test -v ./internal/provider -run TestAccPiholeProvider -timeout 5m
 ```
 
 ### Local Development
@@ -213,6 +283,18 @@ make install
 # Run formatting and checks
 make check
 ```
+
+### CI/CD Pipeline
+
+The project includes a comprehensive GitHub Actions pipeline that:
+
+1. **Builds and Tests**: Runs on multiple Go versions (1.22, 1.23) with cross-platform builds
+2. **Acceptance Tests**: Automatically sets up a Pi-hole Docker container and runs full acceptance tests
+3. **Security Scanning**: Runs vulnerability scans with Trivy and Nancy
+4. **Code Quality**: Enforces formatting, linting, and static analysis
+5. **Automated Releases**: Uses GoReleaser for cross-platform binary releases
+
+The acceptance tests in CI use the same Docker setup as described in the testing section above.
 
 ### Project Structure
 

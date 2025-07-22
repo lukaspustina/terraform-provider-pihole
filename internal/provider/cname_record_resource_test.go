@@ -12,6 +12,7 @@ import (
 )
 
 func TestAccPiholeCNAMERecord_basic(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -44,6 +45,7 @@ func TestAccPiholeCNAMERecord_basic(t *testing.T) {
 }
 
 func TestAccPiholeCNAMERecord_disappears(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -60,6 +62,7 @@ func TestAccPiholeCNAMERecord_disappears(t *testing.T) {
 }
 
 func TestAccPiholeCNAMERecord_invalidDomain(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -72,6 +75,7 @@ func TestAccPiholeCNAMERecord_invalidDomain(t *testing.T) {
 }
 
 func TestAccPiholeCNAMERecord_complexDomains(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -87,6 +91,7 @@ func TestAccPiholeCNAMERecord_complexDomains(t *testing.T) {
 }
 
 func TestAccPiholeCNAMERecord_multipleCNAMEs(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -106,6 +111,7 @@ func TestAccPiholeCNAMERecord_multipleCNAMEs(t *testing.T) {
 }
 
 func TestAccPiholeCNAMERecord_chainedCNAMEs(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -124,24 +130,18 @@ func TestAccPiholeCNAMERecord_chainedCNAMEs(t *testing.T) {
 
 func testAccPiholeCNAMERecordConfig(domain, target string) string {
 	return fmt.Sprintf(`
-provider "pihole" {
-  url      = "https://test.example.com"
-  password = "test-password"
-}
+%s
 
 resource "pihole_cname_record" "test" {
-  domain = %[1]q
-  target = %[2]q
+  domain = %[2]q
+  target = %[3]q
 }
-`, domain, target)
+`, testAccPiholeProviderBlock(), domain, target)
 }
 
 func testAccPiholeCNAMERecordConfigMultiple() string {
-	return `
-provider "pihole" {
-  url      = "https://test.example.com"
-  password = "test-password"
-}
+	return fmt.Sprintf(`
+%s
 
 resource "pihole_cname_record" "www" {
   domain = "www.example.com"
@@ -157,15 +157,12 @@ resource "pihole_cname_record" "api" {
   domain = "api.example.com"
   target = "api-server.example.com"
 }
-`
+`, testAccPiholeProviderBlock())
 }
 
 func testAccPiholeCNAMERecordConfigChained() string {
-	return `
-provider "pihole" {
-  url      = "https://test.example.com"
-  password = "test-password"
-}
+	return fmt.Sprintf(`
+%s
 
 resource "pihole_cname_record" "level1" {
   domain = "app.example.com"
@@ -176,7 +173,7 @@ resource "pihole_cname_record" "level2" {
   domain = "service.example.com"
   target = "app.example.com"
 }
-`
+`, testAccPiholeProviderBlock())
 }
 
 // testAccCheckPiholeCNAMERecordExists verifies the CNAME record exists in the state

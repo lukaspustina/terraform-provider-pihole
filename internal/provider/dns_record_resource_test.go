@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func TestAccPiholeDNSRecord_basic(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -44,6 +46,7 @@ func TestAccPiholeDNSRecord_basic(t *testing.T) {
 }
 
 func TestAccPiholeDNSRecord_disappears(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -60,6 +63,7 @@ func TestAccPiholeDNSRecord_disappears(t *testing.T) {
 }
 
 func TestAccPiholeDNSRecord_invalidIP(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -72,6 +76,7 @@ func TestAccPiholeDNSRecord_invalidIP(t *testing.T) {
 }
 
 func TestAccPiholeDNSRecord_specialCharacters(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -87,6 +92,7 @@ func TestAccPiholeDNSRecord_specialCharacters(t *testing.T) {
 }
 
 func TestAccPiholeDNSRecord_multipleRecords(t *testing.T) {
+	testAccPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -105,26 +111,42 @@ func TestAccPiholeDNSRecord_multipleRecords(t *testing.T) {
 	})
 }
 
-func testAccPiholeDNSRecordConfig(domain, ip string) string {
+func testAccPiholeProviderBlock() string {
+	url := os.Getenv("PIHOLE_URL")
+	if url == "" {
+		url = "https://test.example.com"
+	}
+	password := os.Getenv("PIHOLE_PASSWORD")
+	if password == "" {
+		password = "test-password"
+	}
 	return fmt.Sprintf(`
 provider "pihole" {
-  url      = "https://test.example.com"
-  password = "test-password"
+  url      = %[1]q
+  password = %[2]q
+}`, url, password)
 }
 
-resource "pihole_dns_record" "test" {
-  domain = %[1]q
-  ip     = %[2]q
+func testAccPreCheck(t *testing.T) {
+	if os.Getenv("PIHOLE_URL") == "" {
+		t.Skip("PIHOLE_URL not set, skipping acceptance test")
+	}
 }
-`, domain, ip)
+
+func testAccPiholeDNSRecordConfig(domain, ip string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "pihole_dns_record" "test" {
+  domain = %[2]q
+  ip     = %[3]q
+}
+`, testAccPiholeProviderBlock(), domain, ip)
 }
 
 func testAccPiholeDNSRecordConfigMultiple() string {
-	return `
-provider "pihole" {
-  url      = "https://test.example.com"
-  password = "test-password"
-}
+	return fmt.Sprintf(`
+%s
 
 resource "pihole_dns_record" "test1" {
   domain = "server1.example.com"
@@ -140,7 +162,7 @@ resource "pihole_dns_record" "test3" {
   domain = "server3.example.com"
   ip     = "192.168.1.30"
 }
-`
+`, testAccPiholeProviderBlock())
 }
 
 // testAccCheckPiholeDNSRecordExists verifies the DNS record exists in the state

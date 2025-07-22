@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -24,7 +26,7 @@ func TestAccPiholeProvider(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Verify provider can be configured
 			{
-				Config: testAccPiholeProviderConfig,
+				Config: testAccPiholeProviderConfig(),
 				Check:  resource.ComposeAggregateTestCheckFunc(
 				// Verify provider is properly configured
 				),
@@ -33,19 +35,29 @@ func TestAccPiholeProvider(t *testing.T) {
 	})
 }
 
-const testAccPiholeProviderConfig = `
+func testAccPiholeProviderConfig() string {
+	url := os.Getenv("PIHOLE_URL")
+	if url == "" {
+		url = "https://test.example.com"
+	}
+	password := os.Getenv("PIHOLE_PASSWORD")
+	if password == "" {
+		password = "test-password"
+	}
+	return fmt.Sprintf(`
 provider "pihole" {
-  url      = "https://test.example.com"
-  password = "test-password"
+  url      = %[1]q
+  password = %[2]q
 }
-`
+`, url, password)
+}
 
 func TestAccPiholeProviderWithConfiguration(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPiholeProviderConfigWithSettings,
+				Config: testAccPiholeProviderConfigWithSettings(),
 				Check:  resource.ComposeAggregateTestCheckFunc(
 				// Verify provider accepts custom configuration
 				),
@@ -54,16 +66,26 @@ func TestAccPiholeProviderWithConfiguration(t *testing.T) {
 	})
 }
 
-const testAccPiholeProviderConfigWithSettings = `
+func testAccPiholeProviderConfigWithSettings() string {
+	url := os.Getenv("PIHOLE_URL")
+	if url == "" {
+		url = "https://test.example.com"
+	}
+	password := os.Getenv("PIHOLE_PASSWORD")
+	if password == "" {
+		password = "test-password"
+	}
+	return fmt.Sprintf(`
 provider "pihole" {
-  url                   = "https://test.example.com"
-  password              = "test-password"
+  url                   = %[1]q
+  password              = %[2]q
   max_connections       = 2
   request_delay_ms      = 100
   retry_attempts        = 5
   retry_backoff_base_ms = 250
 }
-`
+`, url, password)
+}
 
 // Unit tests for provider configuration
 func TestPiholeProvider_Schema(t *testing.T) {
