@@ -13,7 +13,82 @@ import (
 // Mock Pi-hole server for testing
 func createMockPiholeServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Handle authentication (new Pi-hole API format)
+		// Handle Pi-hole v6 API authentication
+		if r.URL.Path == "/api/auth" && r.Method == "POST" {
+			// Mock successful authentication response
+			authResponse := AuthResponse{
+				SessionID: "mock-session-id",
+				CSRFToken: "mock-csrf-token",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(authResponse)
+			return
+		}
+
+		// Handle Pi-hole v6 DNS management endpoints
+		if r.URL.Path == "/api/config/dns/hosts" && r.Method == "GET" {
+			// Mock DNS records response
+			response := map[string]interface{}{
+				"config": map[string]interface{}{
+					"dns": map[string]interface{}{
+						"hosts": []string{
+							"192.168.1.100 test.example.com",
+							"192.168.1.101 server.example.com",
+						},
+					},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		if r.URL.Path == "/api/config/dns/cnameRecords" && r.Method == "GET" {
+			// Mock CNAME records response
+			response := map[string]interface{}{
+				"config": map[string]interface{}{
+					"dns": map[string]interface{}{
+						"cnameRecords": []string{
+							"www.example.com,example.com",
+							"mail.example.com,server.example.com",
+						},
+					},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Handle DNS record creation/modification
+		if strings.HasPrefix(r.URL.Path, "/api/config/dns/hosts/") && r.Method == "PUT" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			return
+		}
+
+		// Handle CNAME record creation/modification
+		if strings.HasPrefix(r.URL.Path, "/api/config/dns/cnameRecords/") && r.Method == "PUT" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			return
+		}
+
+		// Handle DNS record deletion
+		if strings.HasPrefix(r.URL.Path, "/api/config/dns/hosts/") && r.Method == "DELETE" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			return
+		}
+
+		// Handle CNAME record deletion
+		if strings.HasPrefix(r.URL.Path, "/api/config/dns/cnameRecords/") && r.Method == "DELETE" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			return
+		}
+
+		// Handle legacy admin API for compatibility (still used by some tests)
 		if r.URL.Path == "/admin/api.php" && r.Method == "GET" && r.URL.Query().Has("summary") {
 			summaryResponse := map[string]interface{}{
 				"domains_being_blocked": 1000,
@@ -64,12 +139,12 @@ func TestNewPiholeClient(t *testing.T) {
 		t.Errorf("Expected BaseURL to be %s, got %s", server.URL, client.BaseURL)
 	}
 
-	if client.SessionID != "test-password" {
-		t.Errorf("Expected SessionID to be 'test-password', got '%s'", client.SessionID)
+	if client.SessionID != "mock-session-id" {
+		t.Errorf("Expected SessionID to be 'mock-session-id', got '%s'", client.SessionID)
 	}
 
-	if client.CSRFToken != "" {
-		t.Errorf("Expected CSRFToken to be empty, got '%s'", client.CSRFToken)
+	if client.CSRFToken != "mock-csrf-token" {
+		t.Errorf("Expected CSRFToken to be 'mock-csrf-token', got '%s'", client.CSRFToken)
 	}
 
 	if client.Config.MaxConnections != 1 {
@@ -78,7 +153,6 @@ func TestNewPiholeClient(t *testing.T) {
 }
 
 func TestPiholeClient_GetDNSRecords(t *testing.T) {
-	t.Skip("DNS record management API format not yet determined - skipping until real Pi-hole testing")
 
 	server := createMockPiholeServer()
 	defer server.Close()
@@ -120,7 +194,6 @@ func TestPiholeClient_GetDNSRecords(t *testing.T) {
 }
 
 func TestPiholeClient_GetCNAMERecords(t *testing.T) {
-	t.Skip("CNAME record management API format not yet determined - skipping until real Pi-hole testing")
 
 	server := createMockPiholeServer()
 	defer server.Close()
@@ -162,7 +235,6 @@ func TestPiholeClient_GetCNAMERecords(t *testing.T) {
 }
 
 func TestPiholeClient_CreateDNSRecord(t *testing.T) {
-	t.Skip("DNS record creation API format not yet determined - skipping until real Pi-hole testing")
 
 	server := createMockPiholeServer()
 	defer server.Close()
@@ -186,7 +258,6 @@ func TestPiholeClient_CreateDNSRecord(t *testing.T) {
 }
 
 func TestPiholeClient_CreateCNAMERecord(t *testing.T) {
-	t.Skip("CNAME record creation API format not yet determined - skipping until real Pi-hole testing")
 
 	server := createMockPiholeServer()
 	defer server.Close()
@@ -210,7 +281,6 @@ func TestPiholeClient_CreateCNAMERecord(t *testing.T) {
 }
 
 func TestPiholeClient_DeleteDNSRecord(t *testing.T) {
-	t.Skip("DNS record deletion API format not yet determined - skipping until real Pi-hole testing")
 
 	server := createMockPiholeServer()
 	defer server.Close()
@@ -234,7 +304,6 @@ func TestPiholeClient_DeleteDNSRecord(t *testing.T) {
 }
 
 func TestPiholeClient_DeleteCNAMERecord(t *testing.T) {
-	t.Skip("CNAME record deletion API format not yet determined - skipping until real Pi-hole testing")
 
 	server := createMockPiholeServer()
 	defer server.Close()
@@ -304,15 +373,12 @@ func TestPiholeClient_RetryLogic(t *testing.T) {
 }
 
 func TestPiholeClient_URLEncoding(t *testing.T) {
-	t.Skip("URL encoding test depends on DNS API format - skipping until real Pi-hole testing")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/auth" {
-			authResponse := map[string]interface{}{
-				"session": map[string]interface{}{
-					"sid":  "test-session-id",
-					"csrf": "test-csrf-token",
-				},
+			authResponse := AuthResponse{
+				SessionID: "test-session-id",
+				CSRFToken: "test-csrf-token",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(authResponse)
