@@ -25,8 +25,8 @@ func TestAccPiholeProvider(t *testing.T) {
 			// Verify provider can be configured
 			{
 				Config: testAccPiholeProviderConfig,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					// Verify provider is properly configured
+				Check:  resource.ComposeAggregateTestCheckFunc(
+				// Verify provider is properly configured
 				),
 			},
 		},
@@ -46,8 +46,8 @@ func TestAccPiholeProviderWithConfiguration(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPiholeProviderConfigWithSettings,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					// Verify provider accepts custom configuration
+				Check:  resource.ComposeAggregateTestCheckFunc(
+				// Verify provider accepts custom configuration
 				),
 			},
 		},
@@ -69,42 +69,42 @@ provider "pihole" {
 func TestPiholeProvider_Schema(t *testing.T) {
 	ctx := context.Background()
 	piholeProvider := &PiholeProvider{}
-	
+
 	req := provider.SchemaRequest{}
 	resp := &provider.SchemaResponse{}
-	
+
 	piholeProvider.Schema(ctx, req, resp)
-	
+
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("Provider schema has errors: %v", resp.Diagnostics.Errors())
 	}
-	
+
 	if resp.Schema.Attributes == nil {
 		t.Fatal("Provider schema should have attributes")
 	}
-	
+
 	// Check required attributes
 	if _, exists := resp.Schema.Attributes["url"]; !exists {
 		t.Error("Provider schema should have 'url' attribute")
 	}
-	
+
 	if _, exists := resp.Schema.Attributes["password"]; !exists {
 		t.Error("Provider schema should have 'password' attribute")
 	}
-	
+
 	// Check optional attributes
 	if _, exists := resp.Schema.Attributes["max_connections"]; !exists {
 		t.Error("Provider schema should have 'max_connections' attribute")
 	}
-	
+
 	if _, exists := resp.Schema.Attributes["request_delay_ms"]; !exists {
 		t.Error("Provider schema should have 'request_delay_ms' attribute")
 	}
-	
+
 	if _, exists := resp.Schema.Attributes["retry_attempts"]; !exists {
 		t.Error("Provider schema should have 'retry_attempts' attribute")
 	}
-	
+
 	if _, exists := resp.Schema.Attributes["retry_backoff_base_ms"]; !exists {
 		t.Error("Provider schema should have 'retry_backoff_base_ms' attribute")
 	}
@@ -113,16 +113,16 @@ func TestPiholeProvider_Schema(t *testing.T) {
 func TestPiholeProvider_Metadata(t *testing.T) {
 	ctx := context.Background()
 	piholeProvider := &PiholeProvider{version: "test-version"}
-	
+
 	req := provider.MetadataRequest{}
 	resp := &provider.MetadataResponse{}
-	
+
 	piholeProvider.Metadata(ctx, req, resp)
-	
+
 	if resp.TypeName != "pihole" {
 		t.Errorf("Expected provider type name to be 'pihole', got '%s'", resp.TypeName)
 	}
-	
+
 	if resp.Version != "test-version" {
 		t.Errorf("Expected provider version to be 'test-version', got '%s'", resp.Version)
 	}
@@ -131,13 +131,13 @@ func TestPiholeProvider_Metadata(t *testing.T) {
 func TestPiholeProvider_Resources(t *testing.T) {
 	ctx := context.Background()
 	provider := &PiholeProvider{}
-	
+
 	resources := provider.Resources(ctx)
-	
+
 	if len(resources) != 2 {
 		t.Errorf("Expected 2 resources, got %d", len(resources))
 	}
-	
+
 	// Test that resource functions can be called without panic
 	for i, resourceFunc := range resources {
 		func() {
@@ -154,9 +154,9 @@ func TestPiholeProvider_Resources(t *testing.T) {
 func TestPiholeProvider_DataSources(t *testing.T) {
 	ctx := context.Background()
 	provider := &PiholeProvider{}
-	
+
 	dataSources := provider.DataSources(ctx)
-	
+
 	// Currently no data sources, but should return empty slice
 	if len(dataSources) != 0 {
 		t.Errorf("Expected 0 data sources, got %d", len(dataSources))

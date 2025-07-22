@@ -17,12 +17,12 @@ type PiholeProvider struct {
 }
 
 type PiholeProviderModel struct {
-	URL                types.String `tfsdk:"url"`
-	Password           types.String `tfsdk:"password"`
-	MaxConnections     types.Int64  `tfsdk:"max_connections"`
-	RequestDelay       types.Int64  `tfsdk:"request_delay_ms"`
-	RetryAttempts      types.Int64  `tfsdk:"retry_attempts"`
-	RetryBackoffBase   types.Int64  `tfsdk:"retry_backoff_base_ms"`
+	URL              types.String `tfsdk:"url"`
+	Password         types.String `tfsdk:"password"`
+	MaxConnections   types.Int64  `tfsdk:"max_connections"`
+	RequestDelay     types.Int64  `tfsdk:"request_delay_ms"`
+	RetryAttempts    types.Int64  `tfsdk:"retry_attempts"`
+	RetryBackoffBase types.Int64  `tfsdk:"retry_backoff_base_ms"`
 }
 
 func (p *PiholeProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -73,10 +73,10 @@ func (p *PiholeProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	// Set defaults for optional parameters
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   300,
-		RetryAttempts:    3,
-		RetryBackoffMs:   500,
+		MaxConnections: 1,
+		RequestDelayMs: 300,
+		RetryAttempts:  3,
+		RetryBackoffMs: 500,
 	}
 
 	// Override defaults with user-provided values

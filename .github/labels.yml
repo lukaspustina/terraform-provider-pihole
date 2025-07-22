@@ -1,0 +1,87 @@
+# GitHub Labels Configuration
+# https://github.com/crazy-max/ghaction-github-labeler
+
+- name: bug
+  color: d73a4a
+  description: Something isn't working
+
+- name: documentation
+  color: 0075ca
+  description: Improvements or additions to documentation
+
+- name: duplicate
+  color: cfd3d7
+  description: This issue or pull request already exists
+
+- name: enhancement
+  color: a2eeef
+  description: New feature or request
+
+- name: good first issue
+  color: 7057ff
+  description: Good for newcomers
+
+- name: help wanted
+  color: 008672
+  description: Extra attention is needed
+
+- name: invalid
+  color: e4e669
+  description: This doesn't seem right
+
+- name: question
+  color: d876e3
+  description: Further information is requested
+
+- name: wontfix
+  color: ffffff
+  description: This will not be worked on
+
+# Custom labels for this project
+- name: dependencies
+  color: 0366d6
+  description: Dependencies updates
+
+- name: go
+  color: 00add8
+  description: Go related changes
+
+- name: github-actions
+  color: 2088ff
+  description: GitHub Actions related changes
+
+- name: pihole
+  color: 96060c
+  description: Pi-hole specific functionality
+
+- name: terraform
+  color: 623ce4
+  description: Terraform related changes
+
+- name: breaking-change
+  color: b60205
+  description: Breaking change that may affect existing users
+
+- name: security
+  color: ee0000
+  description: Security related changes
+
+- name: performance
+  color: fbca04
+  description: Performance improvements
+
+- name: refactoring
+  color: fef2c0
+  description: Code refactoring
+
+- name: testing
+  color: 0e8a16
+  description: Testing improvements
+
+- name: ci
+  color: 1d76db
+  description: CI/CD related changes
+
+- name: run-acceptance-tests
+  color: ffcc00
+  description: Run acceptance tests in CI

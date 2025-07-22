@@ -104,10 +104,10 @@ func TestNewPiholeClient(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   100,
-		RetryAttempts:    3,
-		RetryBackoffMs:   500,
+		MaxConnections: 1,
+		RequestDelayMs: 100,
+		RetryAttempts:  3,
+		RetryBackoffMs: 500,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -137,10 +137,10 @@ func TestPiholeClient_GetDNSRecords(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   50,
-		RetryAttempts:    1,
-		RetryBackoffMs:   100,
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -177,10 +177,10 @@ func TestPiholeClient_GetCNAMERecords(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   50,
-		RetryAttempts:    1,
-		RetryBackoffMs:   100,
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -217,10 +217,10 @@ func TestPiholeClient_CreateDNSRecord(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   50,
-		RetryAttempts:    1,
-		RetryBackoffMs:   100,
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -239,10 +239,10 @@ func TestPiholeClient_CreateCNAMERecord(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   50,
-		RetryAttempts:    1,
-		RetryBackoffMs:   100,
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -261,10 +261,10 @@ func TestPiholeClient_DeleteDNSRecord(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   50,
-		RetryAttempts:    1,
-		RetryBackoffMs:   100,
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -283,10 +283,10 @@ func TestPiholeClient_DeleteCNAMERecord(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   50,
-		RetryAttempts:    1,
-		RetryBackoffMs:   100,
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -326,10 +326,10 @@ func TestPiholeClient_RetryLogic(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   10,
-		RetryAttempts:    3,
-		RetryBackoffMs:   50,
+		MaxConnections: 1,
+		RequestDelayMs: 10,
+		RetryAttempts:  3,
+		RetryBackoffMs: 50,
 	}
 
 	// Since authentication doesn't retry, just verify successful client creation
@@ -398,10 +398,10 @@ func TestPiholeClient_URLEncoding(t *testing.T) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   10,
-		RetryAttempts:    1,
-		RetryBackoffMs:   50,
+		MaxConnections: 1,
+		RequestDelayMs: 10,
+		RetryAttempts:  1,
+		RetryBackoffMs: 50,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -443,24 +443,24 @@ func TestIsRetryableError(t *testing.T) {
 
 func TestClientConfig_Defaults(t *testing.T) {
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   300,
-		RetryAttempts:    3,
-		RetryBackoffMs:   500,
+		MaxConnections: 1,
+		RequestDelayMs: 300,
+		RetryAttempts:  3,
+		RetryBackoffMs: 500,
 	}
 
 	if config.MaxConnections != 1 {
 		t.Errorf("Expected MaxConnections default to be 1, got %d", config.MaxConnections)
 	}
-	
+
 	if config.RequestDelayMs != 300 {
 		t.Errorf("Expected RequestDelayMs default to be 300, got %d", config.RequestDelayMs)
 	}
-	
+
 	if config.RetryAttempts != 3 {
 		t.Errorf("Expected RetryAttempts default to be 3, got %d", config.RetryAttempts)
 	}
-	
+
 	if config.RetryBackoffMs != 500 {
 		t.Errorf("Expected RetryBackoffMs default to be 500, got %d", config.RetryBackoffMs)
 	}

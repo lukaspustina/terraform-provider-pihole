@@ -176,20 +176,20 @@ func testAccCheckPiholeDNSRecordDestroy(resourceName string) resource.TestCheckF
 // Unit tests for DNS record resource
 func TestDNSRecordResource_Schema(t *testing.T) {
 	resource := NewDNSRecordResource()
-	
+
 	schemaReq := fwresource.SchemaRequest{}
 	schemaResp := &fwresource.SchemaResponse{}
-	
+
 	resource.Schema(context.Background(), schemaReq, schemaResp)
-	
+
 	if schemaResp.Diagnostics.HasError() {
 		t.Fatalf("Schema has errors: %v", schemaResp.Diagnostics.Errors())
 	}
-	
+
 	if schemaResp.Schema.Attributes == nil {
 		t.Fatal("Schema should have attributes")
 	}
-	
+
 	// Check required attributes
 	domainAttr, exists := schemaResp.Schema.Attributes["domain"]
 	if !exists {
@@ -197,14 +197,14 @@ func TestDNSRecordResource_Schema(t *testing.T) {
 	} else if !domainAttr.IsRequired() {
 		t.Error("'domain' attribute should be required")
 	}
-	
+
 	ipAttr, exists := schemaResp.Schema.Attributes["ip"]
 	if !exists {
 		t.Error("Schema should have 'ip' attribute")
 	} else if !ipAttr.IsRequired() {
 		t.Error("'ip' attribute should be required")
 	}
-	
+
 	// Check computed attributes
 	idAttr, exists := schemaResp.Schema.Attributes["id"]
 	if !exists {
@@ -216,14 +216,14 @@ func TestDNSRecordResource_Schema(t *testing.T) {
 
 func TestDNSRecordResource_Metadata(t *testing.T) {
 	resource := NewDNSRecordResource()
-	
+
 	req := fwresource.MetadataRequest{
 		ProviderTypeName: "pihole",
 	}
 	resp := &fwresource.MetadataResponse{}
-	
+
 	resource.Metadata(context.Background(), req, resp)
-	
+
 	expectedTypeName := "pihole_dns_record"
 	if resp.TypeName != expectedTypeName {
 		t.Errorf("Expected TypeName to be '%s', got '%s'", expectedTypeName, resp.TypeName)
@@ -236,10 +236,10 @@ func BenchmarkDNSRecordCreate(b *testing.B) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   10,
-		RetryAttempts:    1,
-		RetryBackoffMs:   50,
+		MaxConnections: 1,
+		RequestDelayMs: 10,
+		RetryAttempts:  1,
+		RetryBackoffMs: 50,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -251,7 +251,7 @@ func BenchmarkDNSRecordCreate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		domain := fmt.Sprintf("test%d.example.com", i)
 		ip := fmt.Sprintf("192.168.1.%d", i%255)
-		
+
 		err := client.CreateDNSRecord(domain, ip)
 		if err != nil {
 			b.Fatalf("Failed to create DNS record: %v", err)
@@ -264,10 +264,10 @@ func BenchmarkDNSRecordRead(b *testing.B) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   10,
-		RetryAttempts:    1,
-		RetryBackoffMs:   50,
+		MaxConnections: 1,
+		RequestDelayMs: 10,
+		RetryAttempts:  1,
+		RetryBackoffMs: 50,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)

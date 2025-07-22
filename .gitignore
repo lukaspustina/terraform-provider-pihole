@@ -1,2 +1,3 @@
 .claude/
 coverage.*
+terraform-provider-pihole

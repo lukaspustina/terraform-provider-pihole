@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.22', '1.23']
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go-version }}-
+          
+    - name: Download dependencies
+      run: go mod download
+      
+    - name: Verify dependencies
+      run: go mod verify
+      
+    - name: Run go vet
+      run: go vet ./...
+      
+    - name: Run go fmt check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Code is not formatted properly:"
+          gofmt -s -l .
+          exit 1
+        fi
+        
+    - name: Run unit tests
+      run: make test-unit
+      
+    - name: Run unit tests with coverage
+      run: make test-coverage
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    strategy:
+      matrix:
+        # Build for multiple platforms
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          # Exclude combinations that don't make sense
+          - goos: windows
+            goarch: arm64
+            
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+          
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      run: |
+        mkdir -p dist
+        if [ "$GOOS" = "windows" ]; then
+          go build -ldflags="-s -w" -o dist/terraform-provider-pihole_${{ matrix.goos }}_${{ matrix.goarch }}.exe
+        else
+          go build -ldflags="-s -w" -o dist/terraform-provider-pihole_${{ matrix.goos }}_${{ matrix.goarch }}
+        fi
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: terraform-provider-pihole-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: dist/
+
+  acceptance-test:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-acceptance-tests'))
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+          
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Start Pi-hole container
+      run: |
+        docker run -d \
+          --name pihole-test \
+          -p 8080:80 \
+          -p 8053:53/tcp \
+          -p 8053:53/udp \
+          -e WEBPASSWORD=test-password \
+          -e VIRTUAL_HOST=localhost \
+          pihole/pihole:latest
+          
+        # Wait for Pi-hole to be ready
+        timeout 60 bash -c 'until curl -f http://localhost:8080/admin/; do sleep 2; done'
+        
+    - name: Run acceptance tests
+      env:
+        TF_ACC: 1
+        PIHOLE_URL: http://localhost:8080
+        PIHOLE_PASSWORD: test-password
+      run: make test-acc
+      
+    - name: Stop Pi-hole container
+      if: always()
+      run: docker stop pihole-test && docker rm pihole-test
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+        
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        args: --timeout=5m

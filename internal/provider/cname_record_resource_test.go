@@ -212,20 +212,20 @@ func testAccCheckPiholeCNAMERecordDestroy(resourceName string) resource.TestChec
 // Unit tests for CNAME record resource
 func TestCNAMERecordResource_Schema(t *testing.T) {
 	resource := NewCNAMERecordResource()
-	
+
 	schemaReq := fwresource.SchemaRequest{}
 	schemaResp := &fwresource.SchemaResponse{}
-	
+
 	resource.Schema(context.Background(), schemaReq, schemaResp)
-	
+
 	if schemaResp.Diagnostics.HasError() {
 		t.Fatalf("Schema has errors: %v", schemaResp.Diagnostics.Errors())
 	}
-	
+
 	if schemaResp.Schema.Attributes == nil {
 		t.Fatal("Schema should have attributes")
 	}
-	
+
 	// Check required attributes
 	domainAttr, exists := schemaResp.Schema.Attributes["domain"]
 	if !exists {
@@ -233,14 +233,14 @@ func TestCNAMERecordResource_Schema(t *testing.T) {
 	} else if !domainAttr.IsRequired() {
 		t.Error("'domain' attribute should be required")
 	}
-	
+
 	targetAttr, exists := schemaResp.Schema.Attributes["target"]
 	if !exists {
 		t.Error("Schema should have 'target' attribute")
 	} else if !targetAttr.IsRequired() {
 		t.Error("'target' attribute should be required")
 	}
-	
+
 	// Check computed attributes
 	idAttr, exists := schemaResp.Schema.Attributes["id"]
 	if !exists {
@@ -252,14 +252,14 @@ func TestCNAMERecordResource_Schema(t *testing.T) {
 
 func TestCNAMERecordResource_Metadata(t *testing.T) {
 	resource := NewCNAMERecordResource()
-	
+
 	req := fwresource.MetadataRequest{
 		ProviderTypeName: "pihole",
 	}
 	resp := &fwresource.MetadataResponse{}
-	
+
 	resource.Metadata(context.Background(), req, resp)
-	
+
 	expectedTypeName := "pihole_cname_record"
 	if resp.TypeName != expectedTypeName {
 		t.Errorf("Expected TypeName to be '%s', got '%s'", expectedTypeName, resp.TypeName)
@@ -272,10 +272,10 @@ func BenchmarkCNAMERecordCreate(b *testing.B) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   10,
-		RetryAttempts:    1,
-		RetryBackoffMs:   50,
+		MaxConnections: 1,
+		RequestDelayMs: 10,
+		RetryAttempts:  1,
+		RetryBackoffMs: 50,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -287,7 +287,7 @@ func BenchmarkCNAMERecordCreate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		domain := fmt.Sprintf("test%d.example.com", i)
 		target := fmt.Sprintf("server%d.example.com", i)
-		
+
 		err := client.CreateCNAMERecord(domain, target)
 		if err != nil {
 			b.Fatalf("Failed to create CNAME record: %v", err)
@@ -300,10 +300,10 @@ func BenchmarkCNAMERecordRead(b *testing.B) {
 	defer server.Close()
 
 	config := ClientConfig{
-		MaxConnections:   1,
-		RequestDelayMs:   10,
-		RetryAttempts:    1,
-		RetryBackoffMs:   50,
+		MaxConnections: 1,
+		RequestDelayMs: 10,
+		RetryAttempts:  1,
+		RetryBackoffMs: 50,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -323,10 +323,10 @@ func BenchmarkCNAMERecordRead(b *testing.B) {
 // Table-driven tests for domain validation scenarios
 func TestCNAMERecord_DomainValidation(t *testing.T) {
 	testCases := []struct {
-		name     string
-		domain   string
-		target   string
-		valid    bool
+		name   string
+		domain string
+		target string
+		valid  bool
 	}{
 		{"Simple domain", "www.example.com", "example.com", true},
 		{"Subdomain", "api.v1.example.com", "backend.example.com", true},

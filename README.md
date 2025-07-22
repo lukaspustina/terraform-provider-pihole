@@ -63,7 +63,7 @@ terraform {
   required_providers {
     pihole = {
       source  = "registry.terraform.io/lukaspustina/pihole"
-      version = "1.0.0"
+      version = "0.1.0"
     }
   }
 }
@@ -129,7 +129,7 @@ terraform {
   required_providers {
     pihole = {
       source  = "registry.terraform.io/lukaspustina/pihole"
-      version = "1.0.0"
+      version = "0.1.0"
     }
   }
 }

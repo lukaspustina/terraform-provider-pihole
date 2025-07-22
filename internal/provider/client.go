@@ -13,10 +13,10 @@ import (
 )
 
 type ClientConfig struct {
-	MaxConnections   int
-	RequestDelayMs   int
-	RetryAttempts    int
-	RetryBackoffMs   int
+	MaxConnections int
+	RequestDelayMs int
+	RetryAttempts  int
+	RetryBackoffMs int
 }
 
 type PiholeClient struct {
@@ -55,7 +55,7 @@ func NewPiholeClient(baseURL, password string, config ClientConfig) (*PiholeClie
 		HTTPClient: &http.Client{
 			Timeout: 60 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 				DisableKeepAlives: false,
 				IdleConnTimeout:   90 * time.Second,
 				MaxIdleConns:      10,
@@ -144,14 +144,14 @@ func (c *PiholeClient) makeRequest(method, endpoint string, body interface{}) (*
 
 func (c *PiholeClient) makeRequestWithRetry(method, endpoint string, body interface{}, retries int) (*http.Response, error) {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= retries; attempt++ {
 		// Add delay between attempts (exponential backoff)
 		if attempt > 0 {
 			backoffDelay := time.Duration(attempt*attempt) * time.Duration(c.Config.RetryBackoffMs) * time.Millisecond
 			time.Sleep(backoffDelay)
 		}
-		
+
 		var reqBody io.Reader
 		if body != nil {
 			jsonData, err := json.Marshal(body)
@@ -182,20 +182,20 @@ func (c *PiholeClient) makeRequestWithRetry(method, endpoint string, body interf
 			}
 			return nil, err
 		}
-		
+
 		// Success or non-retryable error
 		return resp, nil
 	}
-	
+
 	return nil, fmt.Errorf("request failed after %d attempts: %w", retries+1, lastErr)
 }
 
 func isRetryableError(err error) bool {
 	errStr := err.Error()
-	return strings.Contains(errStr, "connection refused") || 
-		   strings.Contains(errStr, "EOF") ||
-		   strings.Contains(errStr, "timeout") ||
-		   strings.Contains(errStr, "connection reset")
+	return strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "EOF") ||
+		strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "connection reset")
 }
 
 func (c *PiholeClient) GetDNSRecords() ([]DNSRecord, error) {
@@ -222,7 +222,7 @@ func (c *PiholeClient) GetDNSRecords() ([]DNSRecord, error) {
 			} `json:"dns"`
 		} `json:"config"`
 	}
-	
+
 	if err := json.Unmarshal(body, &apiResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal DNS records: %w, body: %s", err, string(body))
 	}
@@ -244,7 +244,7 @@ func (c *PiholeClient) GetDNSRecords() ([]DNSRecord, error) {
 func (c *PiholeClient) CreateDNSRecord(domain, ip string) error {
 	// Add delay to prevent overwhelming the API
 	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
-	
+
 	// Check if record already exists
 	currentRecords, err := c.GetDNSRecords()
 	if err != nil {
@@ -267,7 +267,7 @@ func (c *PiholeClient) CreateDNSRecord(domain, ip string) error {
 	recordValue := fmt.Sprintf("%s %s", ip, domain)
 	encodedRecord := url.PathEscape(recordValue)
 	endpoint := fmt.Sprintf("/api/config/dns/hosts/%s", encodedRecord)
-	
+
 	resp, err := c.makeRequest("PUT", endpoint, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create DNS record: %w", err)
@@ -275,7 +275,7 @@ func (c *PiholeClient) CreateDNSRecord(domain, ip string) error {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
 		return nil
 	}
@@ -288,7 +288,7 @@ func (c *PiholeClient) UpdateDNSRecord(domain, ip string) error {
 	if err := c.DeleteDNSRecord(domain); err != nil {
 		return fmt.Errorf("failed to delete old DNS record: %w", err)
 	}
-	
+
 	// Now create the new record
 	return c.CreateDNSRecord(domain, ip)
 }
@@ -296,7 +296,7 @@ func (c *PiholeClient) UpdateDNSRecord(domain, ip string) error {
 func (c *PiholeClient) DeleteDNSRecord(domain string) error {
 	// Add delay to prevent overwhelming the API
 	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
-	
+
 	// Get current records to find the exact record to delete
 	currentRecords, err := c.GetDNSRecords()
 	if err != nil {
@@ -329,7 +329,7 @@ func (c *PiholeClient) DeleteDNSRecord(domain string) error {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
 		return nil
 	}
@@ -353,7 +353,7 @@ func (c *PiholeClient) GetCNAMERecords() ([]CNAMERecord, error) {
 		return nil, fmt.Errorf("failed to get CNAME records, status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse Pi-hole API v6 response structure  
+	// Parse Pi-hole API v6 response structure
 	var apiResp struct {
 		Config struct {
 			DNS struct {
@@ -361,7 +361,7 @@ func (c *PiholeClient) GetCNAMERecords() ([]CNAMERecord, error) {
 			} `json:"dns"`
 		} `json:"config"`
 	}
-	
+
 	if err := json.Unmarshal(body, &apiResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal CNAME records: %w, body: %s", err, string(body))
 	}
@@ -383,7 +383,7 @@ func (c *PiholeClient) GetCNAMERecords() ([]CNAMERecord, error) {
 func (c *PiholeClient) CreateCNAMERecord(domain, target string) error {
 	// Add delay to prevent overwhelming the API
 	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
-	
+
 	// Check if record already exists
 	currentRecords, err := c.GetCNAMERecords()
 	if err != nil {
@@ -406,7 +406,7 @@ func (c *PiholeClient) CreateCNAMERecord(domain, target string) error {
 	recordValue := fmt.Sprintf("%s,%s", domain, target)
 	encodedRecord := url.PathEscape(recordValue)
 	endpoint := fmt.Sprintf("/api/config/dns/cnameRecords/%s", encodedRecord)
-	
+
 	resp, err := c.makeRequest("PUT", endpoint, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create CNAME record: %w", err)
@@ -414,7 +414,7 @@ func (c *PiholeClient) CreateCNAMERecord(domain, target string) error {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
 		return nil
 	}
@@ -427,7 +427,7 @@ func (c *PiholeClient) UpdateCNAMERecord(domain, target string) error {
 	if err := c.DeleteCNAMERecord(domain); err != nil {
 		return fmt.Errorf("failed to delete old CNAME record: %w", err)
 	}
-	
+
 	// Now create the new record
 	return c.CreateCNAMERecord(domain, target)
 }
@@ -435,7 +435,7 @@ func (c *PiholeClient) UpdateCNAMERecord(domain, target string) error {
 func (c *PiholeClient) DeleteCNAMERecord(domain string) error {
 	// Add delay to prevent overwhelming the API
 	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
-	
+
 	// Get current records to find the exact record to delete
 	currentRecords, err := c.GetCNAMERecords()
 	if err != nil {
@@ -468,7 +468,7 @@ func (c *PiholeClient) DeleteCNAMERecord(domain string) error {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
 		return nil
 	}

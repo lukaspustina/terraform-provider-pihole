@@ -1,4 +1,4 @@
-.PHONY: build install test test-coverage test-unit test-acc test-race bench test-run test-report fmt vet clean clean-all clean-test check check-full deps dev
+.PHONY: build install test test-coverage test-unit test-acc test-race bench test-run test-report fmt vet clean clean-all clean-test check check-full deps dev lint release-test
 
 # Build the provider
 build:
@@ -8,8 +8,8 @@ build:
 install: build
 	@ARCH=$$(go env GOARCH); \
 	OS=$$(go env GOOS); \
-	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/1.0.0/$${OS}_$${ARCH}/; \
-	cp terraform-provider-pihole ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/1.0.0/$${OS}_$${ARCH}/
+	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.1.0/$${OS}_$${ARCH}/; \
+	cp terraform-provider-pihole ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.1.0/$${OS}_$${ARCH}/
 
 # Run all tests
 test:
@@ -78,3 +78,11 @@ clean-test:
 # Development build with debugging
 dev: build
 	./terraform-provider-pihole -debug
+
+# Run golangci-lint
+lint:
+	golangci-lint run
+
+# Test GoReleaser configuration without releasing
+release-test:
+	goreleaser release --snapshot --skip-publish --clean
