@@ -72,31 +72,45 @@ func NewPiholeClient(baseURL, password string, config ClientConfig) (*PiholeClie
 }
 
 func (c *PiholeClient) authenticate() error {
-	// For Pi-hole CLI-based approach, we just need to verify we can connect to the Pi-hole
-	// and that the password works for API calls
-	testURL := fmt.Sprintf("%s/admin/api.php?summary", c.BaseURL)
+	// Pi-hole v6 API authentication via /api/auth
+	authReq := AuthRequest{Password: c.Password}
 
-	req, err := http.NewRequest("GET", testURL, nil)
+	jsonData, err := json.Marshal(authReq)
 	if err != nil {
-		return fmt.Errorf("failed to create test connection request: %w", err)
+		return fmt.Errorf("failed to marshal auth request: %w", err)
+	}
+
+	authURL := fmt.Sprintf("%s/api/auth", c.BaseURL)
+	req, err := http.NewRequest("POST", authURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create auth request: %w", err)
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to connect to Pi-hole: %w", err)
+		return fmt.Errorf("failed to authenticate with Pi-hole: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Pi-hole connection failed with status: %d, body: %s", resp.StatusCode, string(body))
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read auth response: %w", err)
 	}
 
-	// For CLI-based approach, we store the password for later use with CLI commands
-	c.SessionID = c.Password
-	c.CSRFToken = ""
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("authentication failed with status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var authResp AuthResponse
+	if err := json.Unmarshal(body, &authResp); err != nil {
+		return fmt.Errorf("failed to unmarshal auth response: %w, body: %s", err, string(body))
+	}
+
+	c.SessionID = authResp.SessionID
+	c.CSRFToken = authResp.CSRFToken
 
 	return nil
 }
@@ -124,13 +138,8 @@ func (c *PiholeClient) makeRequestWithRetry(method, endpoint string, body interf
 			reqBody = bytes.NewBuffer(jsonData)
 		}
 
-		// For standard Pi-hole API, append auth token as query parameter
+		// Build full URL for Pi-hole v6 API
 		fullURL := c.BaseURL + endpoint
-		separator := "?"
-		if strings.Contains(endpoint, "?") {
-			separator = "&"
-		}
-		fullURL = fmt.Sprintf("%s%sauth=%s", fullURL, separator, c.SessionID)
 
 		req, err := http.NewRequest(method, fullURL, reqBody)
 		if err != nil {
@@ -140,6 +149,14 @@ func (c *PiholeClient) makeRequestWithRetry(method, endpoint string, body interf
 		req.Header.Set("Accept", "application/json")
 		if body != nil {
 			req.Header.Set("Content-Type", "application/json")
+		}
+
+		// Add Pi-hole v6 API headers
+		if c.SessionID != "" {
+			req.Header.Set("X-FTL-SID", c.SessionID)
+		}
+		if c.CSRFToken != "" {
+			req.Header.Set("X-FTL-CSRF", c.CSRFToken)
 		}
 
 		resp, err := c.HTTPClient.Do(req)

@@ -150,7 +150,7 @@ jobs:
           -e ServerIP=127.0.0.1 \
           -e DNS1=8.8.8.8 \
           -e DNS2=8.8.4.4 \
-          pihole/pihole:2024.07.0
+          pihole/pihole:2025.07.1
           
         # Wait for Pi-hole web interface to be ready
         echo "Waiting for Pi-hole web interface..."
