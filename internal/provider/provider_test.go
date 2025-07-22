@@ -184,3 +184,61 @@ func TestPiholeProvider_DataSources(t *testing.T) {
 		t.Errorf("Expected 0 data sources, got %d", len(dataSources))
 	}
 }
+
+func TestClientCaching(t *testing.T) {
+	// Clear cache before test
+	clearClientCache()
+
+	// Create a mock server
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
+	}
+
+	// First call should create new client
+	initialCacheSize := getCacheSize()
+	client1, err := getOrCreateClient(server.URL, "password1", config)
+	if err != nil {
+		t.Fatalf("Failed to create first client: %v", err)
+	}
+
+	if getCacheSize() != initialCacheSize+1 {
+		t.Errorf("Expected cache size to increase by 1, got %d", getCacheSize())
+	}
+
+	// Second call with same URL/password should reuse client
+	client2, err := getOrCreateClient(server.URL, "password1", config)
+	if err != nil {
+		t.Fatalf("Failed to get cached client: %v", err)
+	}
+
+	if client1 != client2 {
+		t.Error("Expected same client instance to be returned from cache")
+	}
+
+	if getCacheSize() != initialCacheSize+1 {
+		t.Errorf("Expected cache size to remain the same, got %d", getCacheSize())
+	}
+
+	// Third call with different password should create new client
+	client3, err := getOrCreateClient(server.URL, "password2", config)
+	if err != nil {
+		t.Fatalf("Failed to create third client: %v", err)
+	}
+
+	if client1 == client3 {
+		t.Error("Expected different client instance for different password")
+	}
+
+	if getCacheSize() != initialCacheSize+2 {
+		t.Errorf("Expected cache size to be %d, got %d", initialCacheSize+2, getCacheSize())
+	}
+
+	// Clean up
+	clearClientCache()
+}

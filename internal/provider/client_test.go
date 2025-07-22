@@ -15,10 +15,24 @@ func createMockPiholeServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Handle Pi-hole v6 API authentication
 		if r.URL.Path == "/api/auth" && r.Method == "POST" {
-			// Mock successful authentication response
+			// Mock successful authentication response matching Pi-hole v6 format
 			authResponse := AuthResponse{
-				SessionID: "mock-session-id",
-				CSRFToken: "mock-csrf-token",
+				Session: struct {
+					Valid    bool   `json:"valid"`
+					Totp     bool   `json:"totp"`
+					Sid      string `json:"sid"`
+					Validity int    `json:"validity"`
+					Message  string `json:"message"`
+					CSRF     string `json:"csrf"`
+				}{
+					Valid:    true,
+					Totp:     false,
+					Sid:      "mock-session-id",
+					Validity: 1,
+					Message:  "success",
+					CSRF:     "mock-csrf-token",
+				},
+				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(authResponse)
@@ -338,11 +352,23 @@ func TestPiholeClient_RetryLogic(t *testing.T) {
 				return
 			}
 			// Success on 3rd attempt
-			authResponse := map[string]interface{}{
-				"session": map[string]interface{}{
-					"sid":  "test-session-id",
-					"csrf": "test-csrf-token",
+			authResponse := AuthResponse{
+				Session: struct {
+					Valid    bool   `json:"valid"`
+					Totp     bool   `json:"totp"`
+					Sid      string `json:"sid"`
+					Validity int    `json:"validity"`
+					Message  string `json:"message"`
+					CSRF     string `json:"csrf"`
+				}{
+					Valid:    true,
+					Totp:     false,
+					Sid:      "test-session-id",
+					Validity: 1,
+					Message:  "success",
+					CSRF:     "test-csrf-token",
 				},
+				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(authResponse)
@@ -358,17 +384,19 @@ func TestPiholeClient_RetryLogic(t *testing.T) {
 		RetryBackoffMs: 50,
 	}
 
-	// Since authentication doesn't retry, just verify successful client creation
+	// Authentication now implements retry logic, so it should eventually succeed
 	client, err := NewPiholeClient(server.URL, "test-password", config)
-	if err == nil && attempts > 2 {
-		// If we got lucky and the server succeeded, that's fine too
-		if client.SessionID != "test-session-id" {
-			t.Errorf("Expected SessionID to be set after success")
-		}
-	} else {
-		// Since the first two attempts will fail and auth doesn't retry,
-		// we expect this to fail. That's the current behavior.
-		t.Skip("Authentication doesn't currently implement retry logic")
+	if err != nil {
+		t.Fatalf("Expected authentication to succeed after retries, but got error: %v", err)
+	}
+
+	if client.SessionID != "test-session-id" {
+		t.Errorf("Expected SessionID to be 'test-session-id', got '%s'", client.SessionID)
+	}
+
+	// Verify that it actually took multiple attempts
+	if attempts <= 2 {
+		t.Errorf("Expected at least 3 attempts due to failures, but only made %d attempts", attempts)
 	}
 }
 
@@ -377,8 +405,22 @@ func TestPiholeClient_URLEncoding(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/auth" {
 			authResponse := AuthResponse{
-				SessionID: "test-session-id",
-				CSRFToken: "test-csrf-token",
+				Session: struct {
+					Valid    bool   `json:"valid"`
+					Totp     bool   `json:"totp"`
+					Sid      string `json:"sid"`
+					Validity int    `json:"validity"`
+					Message  string `json:"message"`
+					CSRF     string `json:"csrf"`
+				}{
+					Valid:    true,
+					Totp:     false,
+					Sid:      "test-session-id",
+					Validity: 1,
+					Message:  "success",
+					CSRF:     "test-csrf-token",
+				},
+				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(authResponse)

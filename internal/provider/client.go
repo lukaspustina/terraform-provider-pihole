@@ -33,8 +33,15 @@ type AuthRequest struct {
 }
 
 type AuthResponse struct {
-	SessionID string `json:"session_id"`
-	CSRFToken string `json:"csrf_token"`
+	Session struct {
+		Valid    bool   `json:"valid"`
+		Totp     bool   `json:"totp"`
+		Sid      string `json:"sid"`
+		Validity int    `json:"validity"`
+		Message  string `json:"message"`
+		CSRF     string `json:"csrf"`
+	} `json:"session"`
+	Took float64 `json:"took"`
 }
 
 type DNSRecord struct {
@@ -71,48 +78,100 @@ func NewPiholeClient(baseURL, password string, config ClientConfig) (*PiholeClie
 	return client, nil
 }
 
-func (c *PiholeClient) authenticate() error {
-	// Pi-hole v6 API authentication via /api/auth
-	authReq := AuthRequest{Password: c.Password}
-
-	jsonData, err := json.Marshal(authReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal auth request: %w", err)
-	}
-
-	authURL := fmt.Sprintf("%s/api/auth", c.BaseURL)
-	req, err := http.NewRequest("POST", authURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to create auth request: %w", err)
-	}
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to authenticate with Pi-hole: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read auth response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("authentication failed with status: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	var authResp AuthResponse
-	if err := json.Unmarshal(body, &authResp); err != nil {
-		return fmt.Errorf("failed to unmarshal auth response: %w, body: %s", err, string(body))
-	}
-
-	c.SessionID = authResp.SessionID
-	c.CSRFToken = authResp.CSRFToken
-
+// Close cleans up the Pi-hole client session
+func (c *PiholeClient) Close() error {
+	// Pi-hole v6 sessions automatically expire, but we can clear our tokens
+	c.SessionID = ""
+	c.CSRFToken = ""
 	return nil
+}
+
+func (c *PiholeClient) authenticate() error {
+	return c.authenticateWithRetry(c.Config.RetryAttempts)
+}
+
+func (c *PiholeClient) authenticateWithRetry(retries int) error {
+	var lastErr error
+
+	for attempt := 0; attempt <= retries; attempt++ {
+		// Add delay between attempts (exponential backoff)
+		if attempt > 0 {
+			backoffDelay := time.Duration(attempt*attempt) * time.Duration(c.Config.RetryBackoffMs) * time.Millisecond
+			time.Sleep(backoffDelay)
+		}
+
+		// Pi-hole v6 API authentication via /api/auth
+		authReq := AuthRequest{Password: c.Password}
+
+		jsonData, err := json.Marshal(authReq)
+		if err != nil {
+			return fmt.Errorf("failed to marshal auth request: %w", err)
+		}
+
+		authURL := fmt.Sprintf("%s/api/auth", c.BaseURL)
+		req, err := http.NewRequest("POST", authURL, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return fmt.Errorf("failed to create auth request: %w", err)
+		}
+
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.HTTPClient.Do(req)
+		if err != nil {
+			lastErr = err
+			// Check if it's a connection error that might benefit from retry
+			if isRetryableError(err) && attempt < retries {
+				continue
+			}
+			return fmt.Errorf("failed to authenticate with Pi-hole: %w", err)
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			lastErr = err
+			if attempt < retries {
+				continue
+			}
+			return fmt.Errorf("failed to read auth response: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("authentication failed with status: %d, body: %s", resp.StatusCode, string(body))
+			// Don't retry authentication failures (401, 429, etc.)
+			if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusTooManyRequests {
+				return lastErr
+			}
+			if attempt < retries {
+				continue
+			}
+			return lastErr
+		}
+
+		var authResp AuthResponse
+		if err := json.Unmarshal(body, &authResp); err != nil {
+			lastErr = fmt.Errorf("failed to unmarshal auth response: %w, body: %s", err, string(body))
+			if attempt < retries {
+				continue
+			}
+			return lastErr
+		}
+
+		// Check if authentication was successful
+		if !authResp.Session.Valid {
+			lastErr = fmt.Errorf("authentication failed: %s", authResp.Session.Message)
+			// Don't retry invalid credentials
+			return lastErr
+		}
+
+		c.SessionID = authResp.Session.Sid
+		c.CSRFToken = authResp.Session.CSRF
+
+		return nil
+	}
+
+	return fmt.Errorf("authentication failed after %d attempts: %w", retries+1, lastErr)
 }
 
 func (c *PiholeClient) makeRequest(method, endpoint string, body interface{}) (*http.Response, error) {

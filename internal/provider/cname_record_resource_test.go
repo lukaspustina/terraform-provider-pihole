@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -200,8 +201,40 @@ func testAccCheckPiholeCNAMERecordExists(resourceName string) resource.TestCheck
 // testAccCheckPiholeCNAMERecordDestroy simulates external deletion of the resource
 func testAccCheckPiholeCNAMERecordDestroy(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// This would normally delete the resource externally
-		// For testing, we just return nil to simulate successful deletion
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", resourceName)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("resource ID not set")
+		}
+
+		// Create a Pi-hole client to delete the resource externally
+		config := ClientConfig{
+			MaxConnections: 1,
+			RequestDelayMs: 300,
+			RetryAttempts:  3,
+			RetryBackoffMs: 500,
+		}
+
+		url := os.Getenv("PIHOLE_URL")
+		password := os.Getenv("PIHOLE_PASSWORD")
+		if url == "" || password == "" {
+			return fmt.Errorf("PIHOLE_URL and PIHOLE_PASSWORD must be set for disappears test")
+		}
+
+		client, err := getOrCreateClient(url, password, config)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %v", err)
+		}
+
+		// Delete the CNAME record externally using the domain (which is the ID)
+		err = client.DeleteCNAMERecord(rs.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("failed to delete CNAME record externally: %v", err)
+		}
+
 		return nil
 	}
 }

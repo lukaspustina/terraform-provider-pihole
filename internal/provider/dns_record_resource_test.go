@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"testing"
+	"time"
 
 	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -131,6 +132,8 @@ func testAccPreCheck(t *testing.T) {
 	if os.Getenv("PIHOLE_URL") == "" {
 		t.Skip("PIHOLE_URL not set, skipping acceptance test")
 	}
+	// Add delay between tests to reduce Pi-hole API session pressure
+	time.Sleep(1 * time.Second)
 }
 
 func testAccPiholeDNSRecordConfig(domain, ip string) string {
@@ -189,8 +192,40 @@ func testAccCheckPiholeDNSRecordExists(resourceName string) resource.TestCheckFu
 // testAccCheckPiholeDNSRecordDestroy simulates external deletion of the resource
 func testAccCheckPiholeDNSRecordDestroy(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// This would normally delete the resource externally
-		// For testing, we just return nil to simulate successful deletion
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", resourceName)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("resource ID not set")
+		}
+
+		// Create a Pi-hole client to delete the resource externally
+		config := ClientConfig{
+			MaxConnections: 1,
+			RequestDelayMs: 300,
+			RetryAttempts:  3,
+			RetryBackoffMs: 500,
+		}
+
+		url := os.Getenv("PIHOLE_URL")
+		password := os.Getenv("PIHOLE_PASSWORD")
+		if url == "" || password == "" {
+			return fmt.Errorf("PIHOLE_URL and PIHOLE_PASSWORD must be set for disappears test")
+		}
+
+		client, err := getOrCreateClient(url, password, config)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %v", err)
+		}
+
+		// Delete the DNS record externally using the domain (which is the ID)
+		err = client.DeleteDNSRecord(rs.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("failed to delete DNS record externally: %v", err)
+		}
+
 		return nil
 	}
 }
