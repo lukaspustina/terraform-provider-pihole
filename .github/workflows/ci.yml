@@ -145,18 +145,64 @@ jobs:
           -p 8080:80 \
           -p 8053:53/tcp \
           -p 8053:53/udp \
-          -e WEBPASSWORD=test-password \
+          -e WEBPASSWORD=testpass123 \
           -e VIRTUAL_HOST=localhost \
-          pihole/pihole:latest
+          -e ServerIP=127.0.0.1 \
+          -e DNS1=8.8.8.8 \
+          -e DNS2=8.8.4.4 \
+          pihole/pihole:2024.07.0
           
-        # Wait for Pi-hole to be ready
-        timeout 60 bash -c 'until curl -f http://localhost:8080/admin/; do sleep 2; done'
+        # Wait for Pi-hole web interface to be ready
+        echo "Waiting for Pi-hole web interface..."
+        timeout 120 bash -c 'until curl -f http://localhost:8080/admin/; do echo "Waiting..."; sleep 5; done'
+        
+        # Additional wait for Pi-hole API to be fully ready
+        echo "Pi-hole web interface ready, waiting for API to initialize..."
+        sleep 60
+        
+        # Check if all Pi-hole services are running
+        echo "Checking Pi-hole service status..."
+        docker exec pihole-test supervisorctl status || echo "Supervisor status check failed"
+        
+        # Test API accessibility
+        echo "Testing Pi-hole API accessibility..."
+        curl -v http://localhost:8080/admin/api.php || echo "API endpoint test failed, continuing anyway..."
+        
+        # Show Pi-hole logs for debugging
+        echo "Pi-hole container logs:"
+        docker logs pihole-test --tail 20
+        
+    - name: Debug Pi-hole authentication
+      run: |
+        echo "Testing Pi-hole authentication manually..."
+        
+        # Test basic connectivity
+        echo "1. Testing basic connectivity..."
+        curl -i http://localhost:8080/admin/ || echo "Web interface not accessible"
+        
+        # Test API endpoint accessibility  
+        echo "2. Testing API endpoint..."
+        curl -i http://localhost:8080/api/auth -X POST -H "Content-Type: application/json" \
+          -d '{"password":"wrong-password"}' || echo "API endpoint not accessible"
+        
+        # Test with the configured password
+        echo "3. Testing with configured password..."
+        curl -i http://localhost:8080/api/auth -X POST -H "Content-Type: application/json" \
+          -d '{"password":"testpass123"}' || echo "Auth request failed"
+        
+        # Check if password is set correctly in container
+        echo "4. Checking container environment..."
+        docker exec pihole-test env | grep -i password || echo "No password env vars found"
+        
+        # Check Pi-hole setup status
+        echo "5. Checking Pi-hole setup status..."
+        docker exec pihole-test pihole status || echo "Pi-hole status check failed"
         
     - name: Run acceptance tests
       env:
         TF_ACC: 1
         PIHOLE_URL: http://localhost:8080
-        PIHOLE_PASSWORD: test-password
+        PIHOLE_PASSWORD: testpass123
       run: make test-acc
       
     - name: Stop Pi-hole container

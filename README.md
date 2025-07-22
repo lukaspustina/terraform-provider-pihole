@@ -236,7 +236,7 @@ docker run -d \
   -p 8080:80 \
   -p 8053:53/tcp \
   -p 8053:53/udp \
-  -e WEBPASSWORD=test-password \
+  -e WEBPASSWORD=testpass123 \
   -e VIRTUAL_HOST=localhost \
   pihole/pihole:latest
 
@@ -245,7 +245,7 @@ timeout 60 bash -c 'until curl -f http://localhost:8080/admin/; do sleep 2; done
 
 # Set environment variables
 export PIHOLE_URL="http://localhost:8080"
-export PIHOLE_PASSWORD="test-password"
+export PIHOLE_PASSWORD="testpass123"
 
 # Run acceptance tests
 TF_ACC=1 go test -v ./internal/provider -run TestAcc -timeout 30m
