@@ -20,11 +20,24 @@ curl -X POST "https://:443/api/auth" -H 'accept: application/json' -H 'content-t
 curl -v -X GET --header "X-FTL-SID: XXX" --header "X-FTL-CSRF: XXX" "https://XXX:443/api/config/dns/hosts" -H 'accept: application/json'
 ```
 
+### PUT DNS Record
+
+```bash
+ curl -v -X PUT --header "X-FTL-SID: XXX" --header "X-FTL-CSRF: XXX" "https://XXX:443/api/config/dns/hosts/192.168.0.22%20www.homelab.local" -H 'accept: application/json'
+```
+
 ### Get CNAME Records
 
 ```bash
 curl -v -X GET --header "X-FTL-SID: XXX" --header "X-FTL-CSRF: XXX" "https://XXX:443/api/config/dns/cnameRecords" -H 'accept: application/json'
 ```
+
+### PUT CNAME Record
+
+```bash
+curl -v -X PUT --header "X-FTL-SID: XXX" --header "X-FTL-CSRF: XXX" "https://XXX:443/api/config/dns/cnameRecords/web,www" -H 'accept: application/json'
+```
+
 
 ## Provider
 
@@ -38,17 +51,17 @@ provider "pihole" {
 ## Resource - DNS Record
 
 ```hcl
-resource "pihole_dns_record" "sae" {
-  domain = "sae.${local.domain}"
-  ip     = "192.168.2.159"
+resource "pihole_dns_record" "www" {
+  domain = "www.homelab.local"
+  ip     = "192.168.0.22"
 }
 ```
 
 ## Resource - CNAME Record
 
 ```hcl
-resource "pihole_cname_record" "start" {
-  domain = "start.services.${local.domain}"
-  target = "docker-priv.${local.domain}"
+resource "pihole_cname_record" "web" {
+  domain = "web.homelab.local"
+  target = "www.homelab.local"
 }
 ```

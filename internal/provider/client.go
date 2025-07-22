@@ -263,7 +263,7 @@ func (c *PiholeClient) CreateDNSRecord(domain, ip string) error {
 	}
 
 	// Pi-hole API v6 format: everything in URL with URL-encoded space
-	// PUT /api/config/dns/hosts/192.168.2.19%20docker.k.pustina.internal
+	// PUT /api/config/dns/hosts/192.168.0.22%20www.homelab.local
 	recordValue := fmt.Sprintf("%s %s", ip, domain)
 	encodedRecord := url.PathEscape(recordValue)
 	endpoint := fmt.Sprintf("/api/config/dns/hosts/%s", encodedRecord)
