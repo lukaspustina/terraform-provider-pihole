@@ -1,0 +1,46 @@
+# Example terraform.tfvars file for Pi-hole Terraform Provider
+# Copy this file to terraform.tfvars and customize the values
+
+# Pi-hole server configuration
+pihole_url      = "https://pihole.homelab.local:443"
+pihole_password = "your-secure-password-here"
+
+# Network configuration
+base_domain    = "homelab.local"
+network_prefix = "192.168.1"
+
+# Server host configuration
+server_hosts = {
+  docker     = 10  # 192.168.1.10
+  nas        = 20  # 192.168.1.20  
+  router     = 1   # 192.168.1.1
+  pihole     = 5   # 192.168.1.5
+  k8s_master = 30  # 192.168.1.30
+  k8s_node1  = 31  # 192.168.1.31
+  k8s_node2  = 32  # 192.168.1.32
+}
+
+# Service aliases - customize which services point to which hosts
+service_aliases = {
+  # Docker services
+  portainer  = "docker"
+  grafana    = "docker" 
+  prometheus = "docker"
+  traefik    = "docker"
+  
+  # NAS services
+  nextcloud = "nas"
+  files     = "nas"
+  media     = "nas"
+  backup    = "nas"
+  
+  # Web services
+  www  = "docker"
+  blog = "docker"
+  wiki = "docker"
+  docs = "docker"
+}
+
+# Feature flags
+enable_development_services = true   # Creates dev.*, test.*, staging.*
+enable_kubernetes_cluster   = false  # Creates k8s DNS records
