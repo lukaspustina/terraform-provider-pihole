@@ -22,7 +22,7 @@ jobs:
         go-version: ${{ matrix.go-version }}
         
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -55,7 +55,7 @@ jobs:
       run: make test-coverage
       
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.out
         flags: unittests
@@ -85,7 +85,7 @@ jobs:
         go-version: '1.23'
         
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -107,7 +107,7 @@ jobs:
         fi
         
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: terraform-provider-pihole-${{ matrix.goos }}-${{ matrix.goarch }}
         path: dist/
@@ -126,7 +126,7 @@ jobs:
         go-version: '1.23'
         
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -175,7 +175,7 @@ jobs:
         go-version: '1.23'
         
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v6
       with:
         version: latest
         args: --timeout=5m
