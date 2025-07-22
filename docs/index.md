@@ -11,7 +11,7 @@ terraform {
   required_providers {
     pihole = {
       source  = "lukaspustina/pihole"
-      version = "~> 0.1"
+      version = "~> 0.2"
     }
   }
 }

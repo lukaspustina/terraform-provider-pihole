@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 22.07.2025
+
+### Added
+- **Data Sources**: Added comprehensive data sources for reading existing Pi-hole DNS configuration
+  - `pihole_dns_records` - Retrieve all DNS A records from Pi-hole
+  - `pihole_cname_records` - Retrieve all CNAME records from Pi-hole
+  - `pihole_dns_record` - Retrieve a specific DNS A record by domain name
+  - `pihole_cname_record` - Retrieve a specific CNAME record by domain name
+- **Documentation**: Added Terraform registry compatible documentation
+- **Testing**: Added comprehensive acceptance tests for all data sources
+- **Examples**: Added usage examples for all data sources with various scenarios
+
+### Improved
+- **Test Coverage**: Enhanced test coverage with unit and acceptance tests
+- **Error Handling**: Improved error handling for missing records and edge cases
+- **Code Quality**: Added comprehensive linting and formatting checks
+
+### Fixed
+- **GoReleaser**: Removed 386 and FreeBSD build targets as requested
+- **Test Reliability**: Fixed acceptance test issues with Pi-hole behavior
+
 ## [0.1.0] - 22.07.2025
 
 ### Added
@@ -38,5 +59,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implements proper resource lifecycle management
 - Includes comprehensive validation and error handling
 
-[Unreleased]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lukaspustina/terraform-provider-pihole/releases/tag/v0.1.0
