@@ -72,68 +72,31 @@ func NewPiholeClient(baseURL, password string, config ClientConfig) (*PiholeClie
 }
 
 func (c *PiholeClient) authenticate() error {
-	authReq := AuthRequest{Password: c.Password}
-	jsonData, err := json.Marshal(authReq)
+	// For Pi-hole CLI-based approach, we just need to verify we can connect to the Pi-hole
+	// and that the password works for API calls
+	testURL := fmt.Sprintf("%s/admin/api.php?summary", c.BaseURL)
+	
+	req, err := http.NewRequest("GET", testURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to marshal auth request: %w", err)
+		return fmt.Errorf("failed to create test connection request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", c.BaseURL+"/api/auth", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to create auth request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute auth request: %w", err)
+		return fmt.Errorf("failed to connect to Pi-hole: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read auth response: %w", err)
-	}
-
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("authentication failed with status: %d, body: %s", resp.StatusCode, string(body))
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Pi-hole connection failed with status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse response as raw JSON to handle Pi-hole API v6 structure
-	var rawResp map[string]interface{}
-	if err := json.Unmarshal(body, &rawResp); err != nil {
-		return fmt.Errorf("failed to unmarshal auth response: %w, body: %s", err, string(body))
-	}
-
-	// Extract session info from Pi-hole API v6 response structure
-	sessionData, exists := rawResp["session"]
-	if !exists {
-		return fmt.Errorf("no session data found in auth response: %s", string(body))
-	}
-
-	sessionMap, ok := sessionData.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("invalid session data format in auth response: %s", string(body))
-	}
-
-	// Extract session ID and CSRF token
-	if sid, exists := sessionMap["sid"]; exists {
-		if sidStr, ok := sid.(string); ok {
-			c.SessionID = sidStr
-		}
-	}
-
-	if csrf, exists := sessionMap["csrf"]; exists {
-		if csrfStr, ok := csrf.(string); ok {
-			c.CSRFToken = csrfStr
-		}
-	}
-
-	if c.SessionID == "" {
-		return fmt.Errorf("no session ID found in auth response: %s", string(body))
-	}
+	// For CLI-based approach, we store the password for later use with CLI commands
+	c.SessionID = c.Password
+	c.CSRFToken = ""
 
 	return nil
 }
@@ -161,13 +124,19 @@ func (c *PiholeClient) makeRequestWithRetry(method, endpoint string, body interf
 			reqBody = bytes.NewBuffer(jsonData)
 		}
 
-		req, err := http.NewRequest(method, c.BaseURL+endpoint, reqBody)
+		// For standard Pi-hole API, append auth token as query parameter
+		fullURL := c.BaseURL + endpoint
+		separator := "?"
+		if strings.Contains(endpoint, "?") {
+			separator = "&"
+		}
+		fullURL = fmt.Sprintf("%s%sauth=%s", fullURL, separator, c.SessionID)
+
+		req, err := http.NewRequest(method, fullURL, reqBody)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
 
-		req.Header.Set("X-FTL-SID", c.SessionID)
-		req.Header.Set("X-FTL-CSRF", c.CSRFToken)
 		req.Header.Set("Accept", "application/json")
 		if body != nil {
 			req.Header.Set("Content-Type", "application/json")

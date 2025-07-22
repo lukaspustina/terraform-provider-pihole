@@ -180,23 +180,64 @@ jobs:
         echo "1. Testing basic connectivity..."
         curl -i http://localhost:8080/admin/ || echo "Web interface not accessible"
         
-        # Test API endpoint accessibility  
-        echo "2. Testing API endpoint..."
-        curl -i http://localhost:8080/api/auth -X POST -H "Content-Type: application/json" \
-          -d '{"password":"wrong-password"}' || echo "API endpoint not accessible"
+        # Check available API endpoints
+        echo "2. Exploring available endpoints..."
+        echo "Testing /admin/api.php:"
+        curl -i "http://localhost:8080/admin/api.php?summary" || echo "/admin/api.php not accessible"
         
-        # Test with the configured password
-        echo "3. Testing with configured password..."
+        echo "Testing /api/auth:"
         curl -i http://localhost:8080/api/auth -X POST -H "Content-Type: application/json" \
-          -d '{"password":"testpass123"}' || echo "Auth request failed"
+          -d '{"password":"testpass123"}' || echo "/api/auth not accessible"
+          
+        echo "Testing /admin/scripts/pi-hole/php/auth.php:"
+        curl -i http://localhost:8080/admin/scripts/pi-hole/php/auth.php -X POST \
+          -H "Content-Type: application/json" -d '{"password":"testpass123"}' || echo "auth.php not accessible"
+          
+        echo "Testing /admin/api/auth.php:"
+        curl -i http://localhost:8080/admin/api/auth.php -X POST \
+          -H "Content-Type: application/json" -d '{"password":"testpass123"}' || echo "api/auth.php not accessible"
+        
+        # Check what's actually available
+        echo "3. Directory listing attempts..."
+        curl -i http://localhost:8080/api/ || echo "/api/ not accessible"
+        curl -i http://localhost:8080/admin/api/ || echo "/admin/api/ not accessible"
+        
+        # Test traditional Pi-hole API with token
+        echo "4. Testing traditional Pi-hole API..."
+        curl -i "http://localhost:8080/admin/api.php?auth=testpass123&summary" || echo "Traditional API failed"
+        
+        # Check if there are any DNS management endpoints
+        echo "4b. Checking DNS management capabilities..."
+        curl -i "http://localhost:8080/admin/api.php?auth=testpass123&customdns" || echo "Custom DNS API not available"
+        curl -i "http://localhost:8080/admin/api.php?auth=testpass123&customcname" || echo "Custom CNAME API not available"
+        
+        # Check Pi-hole CLI capabilities
+        echo "4c. Checking Pi-hole CLI capabilities..."
+        docker exec pihole-test pihole -h | grep -i dns || echo "DNS commands not found"
+        docker exec pihole-test pihole -a help || echo "Admin commands help failed"
+        
+        # Test adding a custom DNS record via CLI
+        echo "4d. Testing CLI DNS record management..."
+        docker exec pihole-test pihole -a addcustomdns test.example.com 192.168.1.100 || echo "CLI DNS add failed"
+        docker exec pihole-test pihole -a removecustomdns test.example.com || echo "CLI DNS remove failed"
+        
+        # Check if custom.list file exists and is writable
+        echo "4e. Checking custom.list file..."
+        docker exec pihole-test ls -la /etc/pihole/custom.list || echo "custom.list not found"
+        docker exec pihole-test cat /etc/pihole/custom.list || echo "Cannot read custom.list"
         
         # Check if password is set correctly in container
-        echo "4. Checking container environment..."
+        echo "5. Checking container environment..."
         docker exec pihole-test env | grep -i password || echo "No password env vars found"
         
-        # Check Pi-hole setup status
-        echo "5. Checking Pi-hole setup status..."
+        # Check Pi-hole setup status and version
+        echo "6. Checking Pi-hole status and version..."
         docker exec pihole-test pihole status || echo "Pi-hole status check failed"
+        docker exec pihole-test pihole version || echo "Pi-hole version check failed"
+        
+        # Show more detailed logs
+        echo "7. Recent container logs:"
+        docker logs pihole-test --tail 50
         
     - name: Run acceptance tests
       env:
