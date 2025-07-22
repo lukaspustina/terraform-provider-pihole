@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+const providerTypeName = "pihole"
+
 var _ provider.Provider = &PiholeProvider{}
 
 type PiholeProvider struct {
@@ -26,7 +28,7 @@ type PiholeProviderModel struct {
 }
 
 func (p *PiholeProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "pihole"
+	resp.TypeName = providerTypeName
 	resp.Version = p.version
 }
 
