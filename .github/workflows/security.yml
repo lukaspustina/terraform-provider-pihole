@@ -11,6 +11,10 @@ on:
 jobs:
   security:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     
     steps:
     - name: Checkout code
@@ -36,8 +40,30 @@ jobs:
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
       if: always()
+      continue-on-error: true
       with:
         sarif_file: 'trivy-results.sarif'
+        
+    - name: Display Trivy results as fallback
+      if: always()
+      run: |
+        echo "Trivy scan completed. Results saved to trivy-results.sarif"
+        if [ -f "trivy-results.sarif" ]; then
+          echo "SARIF file size: $(wc -c < trivy-results.sarif) bytes"
+          # Display a summary of findings (if any)
+          if command -v jq &> /dev/null; then
+            echo "Trivy findings summary:"
+            jq -r '.runs[0].results | length' trivy-results.sarif 2>/dev/null || echo "No findings or unable to parse SARIF"
+          fi
+        fi
+        
+    - name: Upload Trivy results as artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-security-results
+        path: trivy-results.sarif
+        retention-days: 30
         
     - name: Run Go security checks
       run: |
