@@ -75,7 +75,7 @@ func (c *PiholeClient) authenticate() error {
 	// For Pi-hole CLI-based approach, we just need to verify we can connect to the Pi-hole
 	// and that the password works for API calls
 	testURL := fmt.Sprintf("%s/admin/api.php?summary", c.BaseURL)
-	
+
 	req, err := http.NewRequest("GET", testURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create test connection request: %w", err)

@@ -1,7 +1,7 @@
-.PHONY: build install test test-coverage test-unit test-acc test-race bench test-run test-report fmt vet clean clean-all clean-test check check-full deps dev lint release-test
+.PHONY: build install test test-coverage test-unit test-acc test-race bench test-run test-report fmt vet clean clean-all clean-test check check-full deps dev lint release-test setup-dev
 
-# Build the provider
-build:
+# Build the provider (with linting)
+build: fmt vet lint
 	go build -o terraform-provider-pihole
 
 # Install the provider locally
@@ -46,9 +46,12 @@ test-report: test-coverage
 	@echo "Test coverage report generated: coverage.html"
 	@echo "Open coverage.html in your browser to view detailed coverage"
 
-# Format Go code
+# Format Go code with gofmt and goimports
 fmt:
+	@echo "Running gofmt..."
 	go fmt ./...
+	@echo "Running goimports..."
+	goimports -w .
 
 # Run go vet
 vet:
@@ -65,11 +68,11 @@ clean-all: clean clean-test
 deps:
 	go mod tidy
 
-# Run all quality checks
-check: fmt vet test-unit
+# Run all quality checks (includes linting)
+check: fmt vet lint test-unit
 
 # Run comprehensive checks including coverage
-check-full: fmt vet test-coverage
+check-full: fmt vet lint test-coverage
 
 # Clean test artifacts
 clean-test:
@@ -79,10 +82,18 @@ clean-test:
 dev: build
 	./terraform-provider-pihole -debug
 
-# Run golangci-lint
+# Run golangci-lint with config
 lint:
-	golangci-lint run
+	@echo "Running golangci-lint..."
+	golangci-lint run --config .golangci.yml
 
 # Test GoReleaser configuration without releasing
 release-test:
 	goreleaser release --snapshot --skip-publish --clean
+
+# Setup development environment with git hooks
+setup-dev:
+	@echo "Setting up development environment..."
+	@git config core.hooksPath .githooks
+	@echo "✅ Git hooks configured to use .githooks/"
+	@echo "💡 Now all commits will automatically run formatting and linting!"
