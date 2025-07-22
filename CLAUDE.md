@@ -63,3 +63,8 @@ The provider uses the Terraform Plugin Framework and implements:
 - **DNS Records**: Manage A records via `/api/config/dns/hosts`
 - **CNAME Records**: Manage CNAME records via `/api/config/dns/cnameRecords`
 - **TLS**: Accepts self-signed certificates (InsecureSkipVerify: true)
+
+## Development Best Practices
+
+- Always run linter and tests
+- Always use the Makefile to run linter and tests

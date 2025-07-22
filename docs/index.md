@@ -32,6 +32,13 @@ resource "pihole_cname_record" "www" {
   domain = "www.homelab.local"
   target = "server.homelab.local"
 }
+
+# Data Sources
+data "pihole_dns_records" "existing" {}
+
+data "pihole_cname_record" "web_alias" {
+  domain = "www.homelab.local"
+}
 ```
 
 ## Schema
@@ -50,8 +57,16 @@ resource "pihole_cname_record" "www" {
 
 ## Features
 
+### Resources
 - **DNS A Records**: Manage custom DNS A records that resolve domain names to IP addresses
 - **CNAME Records**: Manage CNAME aliases that point to other domain names
+
+### Data Sources
+- **DNS Records Discovery**: Retrieve all existing DNS A records from Pi-hole
+- **CNAME Records Discovery**: Retrieve all existing CNAME records from Pi-hole
+- **Individual Record Lookup**: Look up specific DNS or CNAME records by domain name
+
+### Technical Features
 - **Pi-hole API v6 Compatible**: Full compatibility with modern Pi-hole installations
 - **Robust Error Handling**: Automatic retries with exponential backoff
 - **Rate Limited**: Built-in request delays prevent API overload

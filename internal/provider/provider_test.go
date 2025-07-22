@@ -179,9 +179,9 @@ func TestPiholeProvider_DataSources(t *testing.T) {
 
 	dataSources := provider.DataSources(ctx)
 
-	// Currently no data sources, but should return empty slice
-	if len(dataSources) != 0 {
-		t.Errorf("Expected 0 data sources, got %d", len(dataSources))
+	// Should have 4 data sources: dns_records, cname_records, dns_record, cname_record
+	if len(dataSources) != 4 {
+		t.Errorf("Expected 4 data sources, got %d", len(dataSources))
 	}
 }
 

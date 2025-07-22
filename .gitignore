@@ -1,4 +1,5 @@
 .claude/
 coverage.*
 .githooks/
+provider.test
 terraform-provider-pihole
