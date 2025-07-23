@@ -4,9 +4,11 @@ A Terraform provider for managing Pi-hole DNS records and CNAME records using th
 
 This provider allows you to manage your Pi-hole DNS configuration as code, enabling Infrastructure as Code (IaC) practices for your local DNS setup.
 
+This work is based on the preliminary work of [Ryan Wholey](https://github.com/ryanwholey/terraform-provider-pihole) and re-uses the HCL resource definitions to allow for easy migration, but does not share any code etc. It has been improved to support the latest Pi-hole API v6, including robust error handling, rate limiting, and TLS support.
+
 ## Features
 
-- ✅ **DNS A Records**: Manage custom DNS A records 
+- ✅ **DNS A Records**: Manage custom DNS A records
 - ✅ **CNAME Records**: Manage CNAME aliases
 - ✅ **Pi-hole API v6**: Full compatibility with modern Pi-hole installations
 - ✅ **Robust Error Handling**: Automatic retries with exponential backoff
