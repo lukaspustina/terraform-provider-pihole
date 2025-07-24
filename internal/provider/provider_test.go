@@ -156,8 +156,8 @@ func TestPiholeProvider_Resources(t *testing.T) {
 
 	resources := provider.Resources(ctx)
 
-	if len(resources) != 2 {
-		t.Errorf("Expected 2 resources, got %d", len(resources))
+	if len(resources) != 3 {
+		t.Errorf("Expected 3 resources, got %d", len(resources))
 	}
 
 	// Test that resource functions can be called without panic
@@ -179,9 +179,9 @@ func TestPiholeProvider_DataSources(t *testing.T) {
 
 	dataSources := provider.DataSources(ctx)
 
-	// Should have 4 data sources: dns_records, cname_records, dns_record, cname_record
-	if len(dataSources) != 4 {
-		t.Errorf("Expected 4 data sources, got %d", len(dataSources))
+	// Should have 5 data sources: dns_records, cname_records, dns_record, cname_record, config
+	if len(dataSources) != 5 {
+		t.Errorf("Expected 5 data sources, got %d", len(dataSources))
 	}
 }
 

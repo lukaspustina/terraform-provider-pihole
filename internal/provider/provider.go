@@ -184,6 +184,7 @@ func (p *PiholeProvider) Resources(ctx context.Context) []func() resource.Resour
 	return []func() resource.Resource{
 		NewDNSRecordResource,
 		NewCNAMERecordResource,
+		NewConfigResource,
 	}
 }
 
@@ -193,6 +194,7 @@ func (p *PiholeProvider) DataSources(ctx context.Context) []func() datasource.Da
 		NewCNAMERecordsDataSource,
 		NewDNSRecordDataSource,
 		NewCNAMERecordDataSource,
+		NewConfigDataSource,
 	}
 }
 

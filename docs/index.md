@@ -6,12 +6,12 @@ This provider enables Infrastructure as Code (IaC) practices for your Pi-hole DN
 
 ## Example Usage
 
-```terraform
+```hcl
 terraform {
   required_providers {
     pihole = {
-      source  = "lukaspustina/pihole"
-      version = "~> 0.2"
+      source  = "registry.terraform.io/lukaspustina/pihole"
+      version = "0.2.0"
     }
   }
 }
@@ -33,12 +33,26 @@ resource "pihole_cname_record" "www" {
   target = "server.homelab.local"
 }
 
+# Webserver Configuration Management (requires admin password)
+resource "pihole_config" "enable_app_sudo" {
+  key   = "webserver.api.app_sudo"
+  value = "true"
+}
+
 # Data Sources
 data "pihole_dns_records" "existing" {}
 
 data "pihole_cname_record" "web_alias" {
   domain = "www.homelab.local"
 }
+
+data "pihole_config" "app_sudo_status" {
+  key = "webserver.api.app_sudo"
+}
+
+# Additional data source examples
+data "pihole_dns_records" "all_dns" {}
+data "pihole_cname_records" "all_cnames" {}
 ```
 
 ## Schema
@@ -61,11 +75,13 @@ data "pihole_cname_record" "web_alias" {
 ### Resources
 - **DNS A Records**: Manage custom DNS A records that resolve domain names to IP addresses
 - **CNAME Records**: Manage CNAME aliases that point to other domain names
+- **Webserver Configuration Settings**: Manage Pi-hole webserver configuration (requires admin password)
 
 ### Data Sources
 - **DNS Records Discovery**: Retrieve all existing DNS A records from Pi-hole
 - **CNAME Records Discovery**: Retrieve all existing CNAME records from Pi-hole
 - **Individual Record Lookup**: Look up specific DNS or CNAME records by domain name
+- **Webserver Configuration Reading**: Read current Pi-hole webserver configuration settings
 
 ### Technical Features
 - **Pi-hole API v6 Compatible**: Full compatibility with modern Pi-hole installations
@@ -91,12 +107,14 @@ This provider targets **Pi-hole API v6** and uses the following endpoints:
 - `GET /api/config/dns/cnameRecords` - Retrieve CNAME records
 - `PUT /api/config/dns/cnameRecords/{domain},{target}` - Create/update CNAME records  
 - `DELETE /api/config/dns/cnameRecords/{domain},{target}` - Delete CNAME records
+- `GET /api/config/webserver` - Retrieve webserver configuration settings
+- `PUT /api/config/webserver` - Update webserver configuration settings
 
 ## Advanced Configuration
 
 For busy Pi-hole instances or unstable network connections, you can adjust the connection parameters:
 
-```terraform
+```hcl
 provider "pihole" {
   url      = "https://pihole.homelab.local:443"
   password = var.pihole_password
@@ -134,7 +152,7 @@ The provider includes automatic retry logic with exponential backoff and rate li
 
 By default, the provider verifies TLS certificates for secure connections. If your Pi-hole uses self-signed certificates, you can disable certificate verification:
 
-```terraform
+```hcl
 provider "pihole" {
   url          = "https://pihole.homelab.local:443"
   password     = var.pihole_password
@@ -143,3 +161,52 @@ provider "pihole" {
 ```
 
 **Security Note**: Only use `insecure_tls = true` for local Pi-hole installations with self-signed certificates. For production environments, keep the default secure verification.
+
+### Webserver Configuration Management Issues
+
+If you're using a Pi-hole **application password** (not the main admin password), **NO modifications are possible** unless `webserver.api.app_sudo` is enabled:
+
+- **DNS/CNAME operations**: Application passwords **cannot** modify DNS or CNAME records unless `webserver.api.app_sudo` is enabled
+- **Webserver configuration changes**: Application passwords **cannot** modify webserver configuration unless `webserver.api.app_sudo` is enabled
+- **Solution**: Use admin password to enable `webserver.api.app_sudo` first (this allows application passwords to modify all settings), or enable "Permit destructive actions via API" in Pi-hole web interface
+
+```hcl
+# Enable all modifications for application passwords (requires admin password initially)
+resource "pihole_config" "enable_app_sudo" {
+  key   = "webserver.api.app_sudo"
+  value = "true"
+}
+```
+
+## Development and Testing
+
+### Running Tests
+
+The provider includes comprehensive unit tests that can be run without a live Pi-hole instance:
+
+```bash
+# Run all tests
+make test
+
+# Run specific tests
+go test -v ./internal/provider -run TestConfigResource
+
+# Format code
+make fmt
+
+# Run linter
+make check
+```
+
+### Local Development
+
+```bash
+# Build the provider
+make build
+
+# Install locally for testing
+make install
+
+# Run in development mode
+make dev
+```

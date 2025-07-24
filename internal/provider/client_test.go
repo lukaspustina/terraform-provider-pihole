@@ -102,6 +102,28 @@ func createMockPiholeServer() *httptest.Server {
 			return
 		}
 
+		// Handle configuration management endpoints
+		if r.URL.Path == "/api/config/webserver" && r.Method == "GET" {
+			response := map[string]interface{}{
+				"config": map[string]interface{}{
+					"webserver": map[string]interface{}{
+						"api": map[string]interface{}{
+							"app_sudo": true, // Changed to true for the GetConfig test
+						},
+					},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		if r.URL.Path == "/api/config/webserver" && r.Method == "PUT" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			return
+		}
+
 		// Handle legacy admin API for compatibility (still used by some tests)
 		if r.URL.Path == "/admin/api.php" && r.Method == "GET" && r.URL.Query().Has("summary") {
 			summaryResponse := map[string]interface{}{
@@ -670,4 +692,128 @@ func TestTLSConfiguration_HTTPSServer(t *testing.T) {
 			t.Errorf("Expected SessionID to be 'mock-session-id', got '%s'", client.SessionID)
 		}
 	})
+}
+
+func TestPiholeClient_GetConfig(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
+		InsecureTLS:    false,
+	}
+
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	// Test getting webserver.api.app_sudo configuration
+	configSetting, err := client.GetConfig("webserver.api.app_sudo")
+	if err != nil {
+		t.Fatalf("Failed to get configuration: %v", err)
+	}
+
+	if configSetting.Key != "webserver.api.app_sudo" {
+		t.Errorf("Expected key 'webserver.api.app_sudo', got '%s'", configSetting.Key)
+	}
+
+	// The mock server returns true for this specific endpoint
+	if configSetting.Value != true {
+		t.Errorf("Expected value true, got %v", configSetting.Value)
+	}
+}
+
+func TestPiholeClient_SetConfig(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
+		InsecureTLS:    false,
+	}
+
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	// Test setting webserver.api.app_sudo configuration
+	err = client.SetConfig("webserver.api.app_sudo", true)
+	if err != nil {
+		t.Fatalf("Failed to set configuration: %v", err)
+	}
+}
+
+func TestPiholeClient_GetWebserverConfig(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
+		InsecureTLS:    false,
+	}
+
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	// Test getting webserver configuration section
+	webserverConfig, err := client.GetWebserverConfig()
+	if err != nil {
+		t.Fatalf("Failed to get webserver configuration: %v", err)
+	}
+
+	// Check that we got the expected structure
+	if apiConfig, ok := webserverConfig["api"].(map[string]interface{}); ok {
+		if appSudo, exists := apiConfig["app_sudo"]; exists {
+			if appSudo != true {
+				t.Errorf("Expected app_sudo to be true, got %v", appSudo)
+			}
+		} else {
+			t.Error("Expected 'app_sudo' key in API configuration")
+		}
+	} else {
+		t.Error("Expected 'api' section in webserver configuration")
+	}
+}
+
+func TestPiholeClient_SetWebserverConfig(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 50,
+		RetryAttempts:  1,
+		RetryBackoffMs: 100,
+		InsecureTLS:    false,
+	}
+
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	// Test setting webserver configuration
+	newConfig := map[string]interface{}{
+		"api": map[string]interface{}{
+			"app_sudo": true,
+		},
+	}
+
+	err = client.SetWebserverConfig(newConfig)
+	if err != nil {
+		t.Fatalf("Failed to set webserver configuration: %v", err)
+	}
 }

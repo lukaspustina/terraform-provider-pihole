@@ -10,6 +10,7 @@ This work is based on the preliminary work of [Ryan Wholey](https://github.com/r
 
 - ✅ **DNS A Records**: Manage custom DNS A records
 - ✅ **CNAME Records**: Manage CNAME aliases
+- ✅ **Configuration Management**: Manage Pi-hole configuration settings (requires admin password)
 - ✅ **Pi-hole API v6**: Full compatibility with modern Pi-hole installations
 - ✅ **Robust Error Handling**: Automatic retries with exponential backoff
 - ✅ **Rate Limited**: Prevents API overload with built-in delays
@@ -128,6 +129,31 @@ resource "pihole_cname_record" "blog" {
 resource "pihole_cname_record" "files" {
   domain = "files.homelab.local"
   target = "nas.homelab.local"
+}
+```
+
+### Configuration Management
+
+Manage Pi-hole webserver configuration settings such as enabling API access for application passwords:
+
+**⚠️ Important**: Webserver configuration management requires the **admin password**, not an application password. Application passwords cannot modify Pi-hole webserver configuration settings unless `webserver.api.app_sudo` is enabled. This setting can be enabled via the Pi-hole web interface under Settings → API/Web interface → "Permit destructive actions via API".
+
+```hcl
+# Enable app_sudo to allow application passwords to modify all Pi-hole settings
+resource "pihole_config" "enable_app_sudo" {
+  key   = "webserver.api.app_sudo"
+  value = "true"
+}
+
+# Read current webserver configuration status
+data "pihole_config" "app_sudo_status" {
+  key = "webserver.api.app_sudo"
+}
+
+# Use configuration status in outputs
+output "api_app_sudo_enabled" {
+  description = "Whether application passwords can modify any Pi-hole settings"
+  value       = data.pihole_config.app_sudo_status.value == "true"
 }
 ```
 
@@ -354,6 +380,8 @@ This provider is designed for **Pi-hole API v6** and uses the following endpoint
 - `GET /api/config/dns/cnameRecords` - Retrieve CNAME records
 - `PUT /api/config/dns/cnameRecords/{domain},{target}` - Create/update CNAME records  
 - `DELETE /api/config/dns/cnameRecords/{domain},{target}` - Delete CNAME records
+- `GET /api/config/webserver` - Retrieve webserver configuration settings
+- `PUT /api/config/webserver` - Update webserver configuration settings
 
 ## Troubleshooting
 
@@ -370,6 +398,24 @@ If you experience connection timeouts or "connection refused" errors:
 - Ensure your Pi-hole admin password is correct
 - Check that your Pi-hole URL is accessible and uses the correct protocol (HTTP/HTTPS)
 - Verify that API access is enabled in Pi-hole settings
+
+### Application Password vs Admin Password
+
+If you're using a Pi-hole **application password** (not the main admin password), **NO modifications are possible** unless `webserver.api.app_sudo` is enabled:
+
+- **DNS/CNAME records**: Application passwords **cannot** modify DNS or CNAME records unless `webserver.api.app_sudo` is enabled
+- **Webserver configuration changes**: Application passwords **cannot** modify Pi-hole webserver configuration settings unless `webserver.api.app_sudo` is enabled
+- **Enable all modifications**: Set `webserver.api.app_sudo = true` using an admin password first:
+
+```hcl
+# This requires admin password to set initially
+resource "pihole_config" "enable_app_sudo" {
+  key   = "webserver.api.app_sudo"  
+  value = "true"
+}
+```
+
+- **Alternative**: Enable "Permit destructive actions via API" in Pi-hole web interface (Settings → API/Web interface)
 
 ### TLS Certificate Issues
 

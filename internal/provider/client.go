@@ -55,6 +55,11 @@ type CNAMERecord struct {
 	Target string `json:"target"`
 }
 
+type ConfigSetting struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
 func NewPiholeClient(baseURL, password string, config ClientConfig) (*PiholeClient, error) {
 	client := &PiholeClient{
 		BaseURL:  baseURL,
@@ -520,4 +525,184 @@ func (c *PiholeClient) DeleteCNAMERecord(domain string) error {
 	}
 
 	return fmt.Errorf("failed to delete CNAME record, status: %d, body: %s", resp.StatusCode, string(body))
+}
+
+// GetConfig retrieves a specific configuration setting from Pi-hole
+func (c *PiholeClient) GetConfig(configKey string) (*ConfigSetting, error) {
+	// Add delay to prevent overwhelming the API
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	// Determine the appropriate endpoint based on the configuration key
+	var endpoint string
+	configParts := strings.Split(configKey, ".")
+
+	// For webserver configuration keys, use the webserver endpoint
+	if len(configParts) > 0 && configParts[0] == "webserver" {
+		endpoint = "/api/config/webserver"
+	} else {
+		// For other configurations, use a general endpoint
+		endpoint = fmt.Sprintf("/api/config/%s", configParts[0])
+	}
+
+	resp, err := c.makeRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configuration '%s': %w", configKey, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read configuration response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get configuration '%s', status: %d, body: %s", configKey, resp.StatusCode, string(body))
+	}
+
+	// Parse the response - expecting nested config structure
+	var apiResp struct {
+		Config map[string]interface{} `json:"config"`
+	}
+
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal configuration response: %w, body: %s", err, string(body))
+	}
+
+	// Navigate through the nested configuration structure
+	// For webserver.api.app_sudo, we need to navigate: config.webserver.api.app_sudo
+	var currentValue interface{} = apiResp.Config
+
+	for _, part := range configParts {
+		if configMap, ok := currentValue.(map[string]interface{}); ok {
+			if val, exists := configMap[part]; exists {
+				currentValue = val
+			} else {
+				return nil, fmt.Errorf("configuration key '%s' not found", configKey)
+			}
+		} else {
+			return nil, fmt.Errorf("configuration structure is not as expected for key '%s'", configKey)
+		}
+	}
+
+	return &ConfigSetting{
+		Key:   configKey,
+		Value: currentValue,
+	}, nil
+}
+
+// SetConfig updates a specific configuration setting in Pi-hole
+func (c *PiholeClient) SetConfig(configKey string, value interface{}) error {
+	// Add delay to prevent overwhelming the API
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	configParts := strings.Split(configKey, ".")
+
+	// Handle webserver configuration specially
+	if len(configParts) > 0 && configParts[0] == "webserver" {
+		return c.setWebserverConfigValue(configKey, value)
+	}
+
+	// For other configurations, use a more general approach
+	// This is a placeholder for future configuration types
+	return fmt.Errorf("configuration type '%s' not yet supported", configParts[0])
+}
+
+// setWebserverConfigValue updates a webserver configuration value
+func (c *PiholeClient) setWebserverConfigValue(configKey string, value interface{}) error {
+	// First get the current webserver configuration
+	currentConfig, err := c.GetWebserverConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get current webserver config: %w", err)
+	}
+
+	// Parse the configuration key (e.g., "webserver.api.app_sudo")
+	configParts := strings.Split(configKey, ".")
+	if len(configParts) < 2 {
+		return fmt.Errorf("invalid webserver configuration key format: %s", configKey)
+	}
+
+	// Skip the "webserver" part and navigate the rest
+	keyParts := configParts[1:]
+
+	// Create a deep copy of current config and update the specific value
+	updatedConfig := make(map[string]interface{})
+	for k, v := range currentConfig {
+		updatedConfig[k] = v
+	}
+
+	// Navigate and update the nested structure
+	current := updatedConfig
+	for i, part := range keyParts {
+		if i == len(keyParts)-1 {
+			// Last part - set the value
+			current[part] = value
+		} else {
+			// Intermediate part - ensure the nested map exists
+			if _, exists := current[part]; !exists {
+				current[part] = make(map[string]interface{})
+			}
+			if nested, ok := current[part].(map[string]interface{}); ok {
+				current = nested
+			} else {
+				return fmt.Errorf("configuration path '%s' is not a nested object", strings.Join(keyParts[:i+1], "."))
+			}
+		}
+	}
+
+	// Update the webserver configuration
+	return c.SetWebserverConfig(updatedConfig)
+}
+
+// GetWebserverConfig retrieves the webserver configuration section
+func (c *PiholeClient) GetWebserverConfig() (map[string]interface{}, error) {
+	// Add delay to prevent overwhelming the API
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	resp, err := c.makeRequest("GET", "/api/config/webserver", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get webserver configuration: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read webserver configuration response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get webserver configuration, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse the response
+	var apiResp struct {
+		Config struct {
+			Webserver map[string]interface{} `json:"webserver"`
+		} `json:"config"`
+	}
+
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal webserver configuration: %w, body: %s", err, string(body))
+	}
+
+	return apiResp.Config.Webserver, nil
+}
+
+// SetWebserverConfig updates webserver configuration settings
+func (c *PiholeClient) SetWebserverConfig(config map[string]interface{}) error {
+	// Add delay to prevent overwhelming the API
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	resp, err := c.makeRequest("PUT", "/api/config/webserver", config)
+	if err != nil {
+		return fmt.Errorf("failed to set webserver configuration: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
+	return fmt.Errorf("failed to set webserver configuration, status: %d, body: %s", resp.StatusCode, string(body))
 }
