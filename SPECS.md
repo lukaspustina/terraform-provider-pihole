@@ -43,10 +43,21 @@ curl -v -X PUT --header "X-FTL-SID: XXX" --header "X-FTL-CSRF: XXX" "https://XXX
 
 ```hcl
 provider "pihole" {
-  url = "https://example.com"
-  password = "xxx"
+  url         = "https://example.com"
+  password    = "xxx"
+  insecure_tls = false  # Optional: Skip TLS certificate verification (default: false)
 }
 ```
+
+### Provider Configuration Options
+
+- `url` (Required): Pi-hole server URL
+- `password` (Required): Pi-hole admin password
+- `insecure_tls` (Optional): Skip TLS certificate verification. Defaults to `false` for secure connections
+- `max_connections` (Optional): Maximum concurrent connections (default: 1)  
+- `request_delay_ms` (Optional): Delay between requests in milliseconds (default: 300)
+- `retry_attempts` (Optional): Number of retry attempts (default: 3)
+- `retry_backoff_base_ms` (Optional): Base retry backoff delay in milliseconds (default: 500)
 
 ## Resource - DNS Record
 

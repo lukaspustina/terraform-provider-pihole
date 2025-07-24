@@ -50,6 +50,7 @@ data "pihole_cname_record" "web_alias" {
 
 ### Optional
 
+- `insecure_tls` (Boolean) - Skip TLS certificate verification. Default: `false`
 - `max_connections` (Number) - Maximum number of concurrent connections to Pi-hole. Default: `1`
 - `request_delay_ms` (Number) - Delay in milliseconds between API requests. Default: `300`
 - `retry_attempts` (Number) - Number of retry attempts for failed requests. Default: `3`
@@ -70,7 +71,7 @@ data "pihole_cname_record" "web_alias" {
 - **Pi-hole API v6 Compatible**: Full compatibility with modern Pi-hole installations
 - **Robust Error Handling**: Automatic retries with exponential backoff
 - **Rate Limited**: Built-in request delays prevent API overload
-- **TLS Support**: Works with HTTPS Pi-hole installations including self-signed certificates
+- **TLS Support**: Secure TLS verification by default, with optional bypass for self-signed certificates
 - **Connection Management**: Configurable connection limits and retry behavior
 
 ## Requirements
@@ -100,6 +101,9 @@ provider "pihole" {
   url      = "https://pihole.homelab.local:443"
   password = var.pihole_password
   
+  # TLS configuration for self-signed certificates
+  insecure_tls = true
+  
   # Slower requests for busy Pi-hole
   request_delay_ms       = 500
   
@@ -128,4 +132,14 @@ The provider includes automatic retry logic with exponential backoff and rate li
 
 ### TLS Certificate Issues
 
-The provider accepts self-signed certificates by default, which is common for local Pi-hole installations.
+By default, the provider verifies TLS certificates for secure connections. If your Pi-hole uses self-signed certificates, you can disable certificate verification:
+
+```terraform
+provider "pihole" {
+  url          = "https://pihole.homelab.local:443"
+  password     = var.pihole_password
+  insecure_tls = true  # Allow self-signed certificates
+}
+```
+
+**Security Note**: Only use `insecure_tls = true` for local Pi-hole installations with self-signed certificates. For production environments, keep the default secure verification.

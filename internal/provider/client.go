@@ -17,6 +17,7 @@ type ClientConfig struct {
 	RequestDelayMs int
 	RetryAttempts  int
 	RetryBackoffMs int
+	InsecureTLS    bool
 }
 
 type PiholeClient struct {
@@ -62,7 +63,7 @@ func NewPiholeClient(baseURL, password string, config ClientConfig) (*PiholeClie
 		HTTPClient: &http.Client{
 			Timeout: 60 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig:   &tls.Config{InsecureSkipVerify: config.InsecureTLS},
 				DisableKeepAlives: false,
 				IdleConnTimeout:   90 * time.Second,
 				MaxIdleConns:      10,

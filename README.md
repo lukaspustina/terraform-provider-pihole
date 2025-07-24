@@ -13,7 +13,7 @@ This work is based on the preliminary work of [Ryan Wholey](https://github.com/r
 - ✅ **Pi-hole API v6**: Full compatibility with modern Pi-hole installations
 - ✅ **Robust Error Handling**: Automatic retries with exponential backoff
 - ✅ **Rate Limited**: Prevents API overload with built-in delays
-- ✅ **TLS Support**: Works with HTTPS Pi-hole installations (including self-signed certificates)
+- ✅ **TLS Support**: Secure TLS verification by default, with optional bypass for self-signed certificates
 
 ## Requirements
 
@@ -41,6 +41,9 @@ provider "pihole" {
   url      = "https://pihole.homelab.local:443"
   password = var.pihole_password
   
+  # TLS configuration (optional)
+  insecure_tls = false  # Skip TLS verification for self-signed certificates
+  
   # Connection management (optional)
   max_connections        = 1       # Limit concurrent connections
   request_delay_ms       = 500     # Slower requests for busy Pi-hole
@@ -53,6 +56,7 @@ provider "pihole" {
 
 - `url` (Required) - Pi-hole server URL
 - `password` (Required) - Pi-hole admin password
+- `insecure_tls` (Optional) - Skip TLS certificate verification (default: false)
 - `max_connections` (Optional) - Maximum concurrent connections (default: 1)
 - `request_delay_ms` (Optional) - Delay between requests in milliseconds (default: 300)
 - `retry_attempts` (Optional) - Number of retry attempts (default: 3)  
@@ -73,6 +77,9 @@ terraform {
 provider "pihole" {
   url      = "https://pihole.homelab.local:443"  # Your Pi-hole URL
   password = "your-admin-password-here"        # Pi-hole admin password
+  
+  # Optional: TLS configuration (shown with defaults)
+  insecure_tls = false             # Skip TLS certificate verification (default: false)
   
   # Optional: Connection and timing settings (shown with defaults)
   max_connections        = 1       # Maximum concurrent connections to Pi-hole
@@ -366,7 +373,17 @@ If you experience connection timeouts or "connection refused" errors:
 
 ### TLS Certificate Issues
 
-The provider accepts self-signed certificates by default. If you need stricter TLS validation, this would need to be configured in the provider code.
+By default, the provider verifies TLS certificates for secure connections. If your Pi-hole uses self-signed certificates, you can disable TLS verification by setting `insecure_tls = true` in your provider configuration:
+
+```hcl
+provider "pihole" {
+  url          = "https://pihole.homelab.local:443"
+  password     = "your-admin-password-here"
+  insecure_tls = true  # Allow self-signed certificates
+}
+```
+
+**Security Note**: Only use `insecure_tls = true` for local Pi-hole installations with self-signed certificates. For production environments or public-facing Pi-hole instances, keep the default `insecure_tls = false` setting.
 
 ## Contributing
 

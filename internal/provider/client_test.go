@@ -142,6 +142,7 @@ func TestNewPiholeClient(t *testing.T) {
 		RequestDelayMs: 100,
 		RetryAttempts:  3,
 		RetryBackoffMs: 500,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -176,6 +177,7 @@ func TestPiholeClient_GetDNSRecords(t *testing.T) {
 		RequestDelayMs: 50,
 		RetryAttempts:  1,
 		RetryBackoffMs: 100,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -217,6 +219,7 @@ func TestPiholeClient_GetCNAMERecords(t *testing.T) {
 		RequestDelayMs: 50,
 		RetryAttempts:  1,
 		RetryBackoffMs: 100,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -258,6 +261,7 @@ func TestPiholeClient_CreateDNSRecord(t *testing.T) {
 		RequestDelayMs: 50,
 		RetryAttempts:  1,
 		RetryBackoffMs: 100,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -281,6 +285,7 @@ func TestPiholeClient_CreateCNAMERecord(t *testing.T) {
 		RequestDelayMs: 50,
 		RetryAttempts:  1,
 		RetryBackoffMs: 100,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -304,6 +309,7 @@ func TestPiholeClient_DeleteDNSRecord(t *testing.T) {
 		RequestDelayMs: 50,
 		RetryAttempts:  1,
 		RetryBackoffMs: 100,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -327,6 +333,7 @@ func TestPiholeClient_DeleteCNAMERecord(t *testing.T) {
 		RequestDelayMs: 50,
 		RetryAttempts:  1,
 		RetryBackoffMs: 100,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -382,6 +389,7 @@ func TestPiholeClient_RetryLogic(t *testing.T) {
 		RequestDelayMs: 10,
 		RetryAttempts:  3,
 		RetryBackoffMs: 50,
+		InsecureTLS:    false,
 	}
 
 	// Authentication now implements retry logic, so it should eventually succeed
@@ -469,6 +477,7 @@ func TestPiholeClient_URLEncoding(t *testing.T) {
 		RequestDelayMs: 10,
 		RetryAttempts:  1,
 		RetryBackoffMs: 50,
+		InsecureTLS:    false,
 	}
 
 	client, err := NewPiholeClient(server.URL, "test-password", config)
@@ -514,6 +523,7 @@ func TestClientConfig_Defaults(t *testing.T) {
 		RequestDelayMs: 300,
 		RetryAttempts:  3,
 		RetryBackoffMs: 500,
+		InsecureTLS:    false,
 	}
 
 	if config.MaxConnections != 1 {
@@ -531,4 +541,133 @@ func TestClientConfig_Defaults(t *testing.T) {
 	if config.RetryBackoffMs != 500 {
 		t.Errorf("Expected RetryBackoffMs default to be 500, got %d", config.RetryBackoffMs)
 	}
+
+	if config.InsecureTLS != false {
+		t.Errorf("Expected InsecureTLS default to be false, got %t", config.InsecureTLS)
+	}
+}
+
+func TestTLSConfiguration_SecureByDefault(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 100,
+		RetryAttempts:  3,
+		RetryBackoffMs: 500,
+		InsecureTLS:    false, // Secure TLS verification
+	}
+
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	transport, ok := client.HTTPClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Expected client to use http.Transport")
+	}
+
+	if transport.TLSClientConfig.InsecureSkipVerify != false {
+		t.Errorf("Expected InsecureSkipVerify to be false for secure TLS, got %t", transport.TLSClientConfig.InsecureSkipVerify)
+	}
+}
+
+func TestTLSConfiguration_InsecureWhenConfigured(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{
+		MaxConnections: 1,
+		RequestDelayMs: 100,
+		RetryAttempts:  3,
+		RetryBackoffMs: 500,
+		InsecureTLS:    true, // Insecure TLS verification disabled
+	}
+
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	transport, ok := client.HTTPClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Expected client to use http.Transport")
+	}
+
+	if transport.TLSClientConfig.InsecureSkipVerify != true {
+		t.Errorf("Expected InsecureSkipVerify to be true for insecure TLS, got %t", transport.TLSClientConfig.InsecureSkipVerify)
+	}
+}
+
+func TestTLSConfiguration_HTTPSServer(t *testing.T) {
+	// Create HTTPS test server
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth" && r.Method == "POST" {
+			authResponse := AuthResponse{
+				Session: struct {
+					Valid    bool   `json:"valid"`
+					Totp     bool   `json:"totp"`
+					Sid      string `json:"sid"`
+					Validity int    `json:"validity"`
+					Message  string `json:"message"`
+					CSRF     string `json:"csrf"`
+				}{
+					Valid:    true,
+					Totp:     false,
+					Sid:      "mock-session-id",
+					Validity: 1,
+					Message:  "success",
+					CSRF:     "mock-csrf-token",
+				},
+				Took: 0.001,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(authResponse)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	t.Run("insecure_tls=false should fail with self-signed cert", func(t *testing.T) {
+		config := ClientConfig{
+			MaxConnections: 1,
+			RequestDelayMs: 100,
+			RetryAttempts:  1, // Reduce retries for faster test
+			RetryBackoffMs: 100,
+			InsecureTLS:    false, // Secure TLS verification
+		}
+
+		_, err := NewPiholeClient(server.URL, "test-password", config)
+		if err == nil {
+			t.Error("Expected client creation to fail with secure TLS and self-signed certificate")
+		}
+
+		// Check that the error is related to certificate verification
+		if !strings.Contains(err.Error(), "certificate") && !strings.Contains(err.Error(), "tls") {
+			t.Logf("Error message: %v", err)
+			// Note: We're being lenient here as the exact error message may vary
+		}
+	})
+
+	t.Run("insecure_tls=true should succeed with self-signed cert", func(t *testing.T) {
+		config := ClientConfig{
+			MaxConnections: 1,
+			RequestDelayMs: 100,
+			RetryAttempts:  3,
+			RetryBackoffMs: 500,
+			InsecureTLS:    true, // Allow insecure TLS
+		}
+
+		client, err := NewPiholeClient(server.URL, "test-password", config)
+		if err != nil {
+			t.Fatalf("Expected client creation to succeed with insecure TLS, got error: %v", err)
+		}
+
+		if client.SessionID != "mock-session-id" {
+			t.Errorf("Expected SessionID to be 'mock-session-id', got '%s'", client.SessionID)
+		}
+	})
 }

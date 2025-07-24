@@ -32,6 +32,7 @@ type PiholeProviderModel struct {
 	RequestDelay     types.Int64  `tfsdk:"request_delay_ms"`
 	RetryAttempts    types.Int64  `tfsdk:"retry_attempts"`
 	RetryBackoffBase types.Int64  `tfsdk:"retry_backoff_base_ms"`
+	InsecureTLS      types.Bool   `tfsdk:"insecure_tls"`
 }
 
 // getOrCreateClient returns a cached client or creates a new one
@@ -121,6 +122,10 @@ func (p *PiholeProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 				MarkdownDescription: "Base delay in milliseconds for retry backoff (default: 500)",
 				Optional:            true,
 			},
+			"insecure_tls": schema.BoolAttribute{
+				MarkdownDescription: "Skip TLS certificate verification (default: false)",
+				Optional:            true,
+			},
 		},
 	}
 }
@@ -140,6 +145,7 @@ func (p *PiholeProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		RequestDelayMs: 300,
 		RetryAttempts:  3,
 		RetryBackoffMs: 500,
+		InsecureTLS:    false, // Default to secure TLS verification
 	}
 
 	// Override defaults with user-provided values
@@ -154,6 +160,9 @@ func (p *PiholeProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	}
 	if !data.RetryBackoffBase.IsNull() {
 		config.RetryBackoffMs = int(data.RetryBackoffBase.ValueInt64())
+	}
+	if !data.InsecureTLS.IsNull() {
+		config.InsecureTLS = data.InsecureTLS.ValueBool()
 	}
 
 	client, err := getOrCreateClient(data.URL.ValueString(), data.Password.ValueString(), config)
