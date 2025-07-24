@@ -9,6 +9,10 @@ on:
       - .github/labels.yml
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   labels:
     runs-on: ubuntu-latest

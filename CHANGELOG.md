@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 24.07.2025
+
+### Added
+- **Configuration Management**: Added `pihole_config` resource and data source for managing Pi-hole webserver configuration settings
+  - Support for `webserver.api.app_sudo` configuration to enable application password permissions
+  - Comprehensive documentation about admin vs application password requirements
+- **Security Enhancements**: 
+  - TLS certificate verification is now secure by default (changed from insecure hardcoded behavior)
+  - Added optional `insecure_tls` parameter for self-signed certificates
+  - Enhanced security warnings and documentation
+
+### Changed
+- **Breaking Change**: TLS certificate verification now defaults to secure (was previously insecure by default)
+- **Configuration API**: Webserver configuration management now properly handles nested JSON structure navigation
+
 ## [0.2.0] - 22.07.2025
 
 ### Added
@@ -59,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implements proper resource lifecycle management
 - Includes comprehensive validation and error handling
 
-[Unreleased]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/lukaspustina/terraform-provider-pihole/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lukaspustina/terraform-provider-pihole/releases/tag/v0.1.0

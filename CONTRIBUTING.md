@@ -182,7 +182,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 Releases are automated via GitHub Actions when a tag is pushed:
 
 1. Update version references and CHANGELOG.md
-2. Create and push a tag: `git tag v0.2.0 && git push origin v0.2.0`
+2. Create and push a tag: `git tag v0.3.0 && git push origin v0.3.0`
 3. GitHub Actions will build and publish the release
 
 ## Getting Help

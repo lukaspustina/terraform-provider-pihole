@@ -8,8 +8,8 @@ build: fmt vet lint
 install: build
 	@ARCH=$$(go env GOARCH); \
 	OS=$$(go env GOOS); \
-	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.2.0/$${OS}_$${ARCH}/; \
-	cp terraform-provider-pihole ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.2.0/$${OS}_$${ARCH}/
+	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.3.0/$${OS}_$${ARCH}/; \
+	cp terraform-provider-pihole ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.3.0/$${OS}_$${ARCH}/
 
 # Run all tests
 test:
