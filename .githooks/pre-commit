@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Pre-commit hook to run automatic formatting and linting
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Capture currently staged files before formatting
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "No Go files staged, skipping checks."
+  exit 0
+fi
+
+# Format code
+echo "Formatting Go code..."
+make fmt
+
+# Run linting
+echo "Running linter..."
+make lint
+
+# Run vet
+echo "Running go vet..."
+make vet
+
+# Re-add only the files that were originally staged (in case formatting changed them)
+echo "$STAGED_FILES" | xargs git add
+
+echo "Pre-commit checks passed!"

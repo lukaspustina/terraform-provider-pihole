@@ -124,39 +124,19 @@ jobs:
           -e DNS1=8.8.8.8 \
           -e DNS2=8.8.4.4 \
           pihole/pihole:2025.07.1
-          
-        # Wait for Pi-hole web interface to be ready
-        echo "Waiting for Pi-hole web interface..."
-        timeout 120 bash -c 'until curl -f http://localhost:8080/admin/; do echo "Waiting..."; sleep 5; done'
-        
-        # Additional wait for Pi-hole API to be fully ready
-        echo "Pi-hole web interface ready, waiting for API to initialize..."
-        sleep 60
-        
-        # Check if all Pi-hole services are running
-        echo "Checking Pi-hole service status..."
-        docker exec pihole-test supervisorctl status || echo "Supervisor status check failed"
-        
-        # Test API accessibility
-        echo "Testing Pi-hole API accessibility..."
-        curl -v http://localhost:8080/admin/api.php || echo "API endpoint test failed, continuing anyway..."
-        
-        # Show Pi-hole logs for debugging
-        echo "Pi-hole container logs:"
-        docker logs pihole-test --tail 20
-        
-    - name: Test Pi-hole v6 authentication
+
+    - name: Wait for Pi-hole API readiness
       run: |
-        echo "Testing Pi-hole v6 authentication..."
-        
-        # Test the v6 API authentication endpoint
-        echo "Testing /api/auth with v6 format:"
-        curl -v -X POST http://localhost:8080/api/auth \
-          -H "Content-Type: application/json" \
-          -d '{"password":"testpass123"}' || echo "Pi-hole v6 authentication failed"
-          
-        echo "Container logs (last 20 lines):"
-        docker logs pihole-test --tail 20
+        echo "Waiting for Pi-hole v6 API to become ready..."
+        timeout 180 bash -c '
+          until curl -sf -X POST http://localhost:8080/api/auth \
+            -H "Content-Type: application/json" \
+            -d "{\"password\":\"testpass123\"}" | grep -q "\"valid\":true"; do
+            echo "  API not ready yet, retrying in 5s..."
+            sleep 5
+          done
+        '
+        echo "Pi-hole API is ready."
         
     - name: Run acceptance tests
       env:
@@ -181,30 +161,8 @@ jobs:
         go-version-file: 'go.mod'
         cache: true
 
-    - name: Install goimports
-      run: go install golang.org/x/tools/cmd/goimports@latest
-        
-    - name: Run formatting checks
-      run: |
-        # Check if code is properly formatted
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "Code is not formatted properly:"
-          gofmt -s -l .
-          echo "Run 'make fmt' to fix formatting issues"
-          exit 1
-        fi
-        
-        # Check imports formatting
-        GOIMPORTS_OUTPUT=$(goimports -l .)
-        if [ -n "$GOIMPORTS_OUTPUT" ]; then
-          echo "Imports are not formatted properly:"
-          echo "$GOIMPORTS_OUTPUT"
-          echo "Run 'make fmt' to fix import formatting"
-          exit 1
-        fi
-        
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.64.8
-        args: --config .golangci.yml --timeout=5m
+        version: v2.9.0
+        args: --timeout=5m

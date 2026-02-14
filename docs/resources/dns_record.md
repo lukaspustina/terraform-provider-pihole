@@ -57,7 +57,7 @@ resource "pihole_dns_record" "servers" {
 ### Required Arguments
 
 - `domain` (String) - The fully qualified domain name to resolve. Must be a valid domain name format.
-- `ip` (String) - The IPv4 address that the domain should resolve to. Must be a valid IPv4 address format.
+- `ip` (String) - The IP address that the domain should resolve to. Supports both IPv4 (e.g., `192.168.1.100`) and IPv6 (e.g., `::1`, `2001:db8::1`) formats.
 
 ### Read-Only Attributes
 
@@ -76,21 +76,21 @@ terraform import pihole_dns_record.example server.homelab.local
 The resource performs validation on both arguments:
 
 - **Domain**: Must be a valid fully qualified domain name (FQDN) format
-- **IP**: Must be a valid IPv4 address format (e.g., `192.168.1.100`)
+- **IP**: Must be a valid IPv4 or IPv6 address format (e.g., `192.168.1.100`, `::1`)
 
 ## Behavior Notes
 
 - **Uniqueness**: Each domain can only have one DNS A record. If you attempt to create multiple records for the same domain, the last one will overwrite previous ones.
 - **Case Sensitivity**: Domain names are case-insensitive and will be stored in Pi-hole as entered.
 - **Updates**: Changing either the domain or IP will result in the old record being deleted and a new one created.
-- **IPv6**: Currently only IPv4 addresses are supported. IPv6 support may be added in future versions.
+- **IPv6**: Both IPv4 and IPv6 addresses are supported.
 
 ## Error Handling
 
 Common errors and their meanings:
 
 - **Invalid domain format**: The domain name doesn't match FQDN requirements
-- **Invalid IP format**: The IP address is not a valid IPv4 address
+- **Invalid IP format**: The IP address is not a valid IPv4 or IPv6 address
 - **Authentication failed**: Pi-hole admin password is incorrect or API access is disabled
 - **Connection timeout**: Pi-hole server is unreachable or overloaded
 

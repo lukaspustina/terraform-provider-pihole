@@ -1,18 +1,14 @@
-# golangci-lint configuration for Terraform Provider
-# Simplified and permissive config for CI
+# golangci-lint v2 configuration for Terraform Provider
+version: "2"
 
 run:
   timeout: 5m
-  issues-exit-code: 1
   tests: true
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - misspell
@@ -20,32 +16,35 @@ linters:
     - typecheck
     - unused
 
-linters-settings:
-  govet:
-    enable:
-      - shadow
+  settings:
+    govet:
+      enable:
+        - shadow
 
-  goimports:
-    local-prefixes: github.com/lukaspustina/terraform-provider-pihole
+    misspell:
+      locale: US
 
-  misspell:
-    locale: US
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/lukaspustina/terraform-provider-pihole
 
 issues:
   exclude-rules:
-    # Exclude all issues in test files
     - path: _test\.go
       linters:
         - errcheck
-        - gosec
-    
-    # Exclude common Terraform provider patterns
+
     - text: "Error return value.*Encode.*is not checked"
       linters:
         - errcheck
 
   exclude:
-    # Standard excludes for common patterns
     - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
 
   max-issues-per-linter: 10

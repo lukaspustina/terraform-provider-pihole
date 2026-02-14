@@ -1,5 +1,7 @@
 .PHONY: build install test test-coverage test-unit test-acc test-race bench test-run test-report fmt vet clean clean-all clean-test check check-full deps dev lint release-test setup-dev
 
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+
 # Build the provider (with linting)
 build: fmt vet lint
 	go build -o terraform-provider-pihole
@@ -8,8 +10,8 @@ build: fmt vet lint
 install: build
 	@ARCH=$$(go env GOARCH); \
 	OS=$$(go env GOOS); \
-	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.3.0/$${OS}_$${ARCH}/; \
-	cp terraform-provider-pihole ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/0.3.0/$${OS}_$${ARCH}/
+	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/$(VERSION)/$${OS}_$${ARCH}/; \
+	cp terraform-provider-pihole ~/.terraform.d/plugins/registry.terraform.io/lukaspustina/pihole/$(VERSION)/$${OS}_$${ARCH}/
 
 # Run all tests
 test:
