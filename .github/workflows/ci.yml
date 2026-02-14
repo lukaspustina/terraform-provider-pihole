@@ -12,27 +12,14 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.22', '1.23']
-        
     steps:
     - uses: actions/checkout@v5
-    
+
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
-        
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-
+        go-version-file: 'go.mod'
+        cache: true
           
     - name: Download dependencies
       run: go mod download
@@ -83,20 +70,11 @@ jobs:
     - uses: actions/checkout@v5
     
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
-        
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-1.23-
-          
+        go-version-file: 'go.mod'
+        cache: true
+
     - name: Build binary
       env:
         GOOS: ${{ matrix.goos }}
@@ -124,20 +102,11 @@ jobs:
     - uses: actions/checkout@v5
     
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
-        
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-1.23-
-          
+        go-version-file: 'go.mod'
+        cache: true
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
@@ -207,10 +176,11 @@ jobs:
     - uses: actions/checkout@v5
     
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
-        
+        go-version-file: 'go.mod'
+        cache: true
+
     - name: Install goimports
       run: go install golang.org/x/tools/cmd/goimports@latest
         
