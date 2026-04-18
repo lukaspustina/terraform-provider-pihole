@@ -124,6 +124,55 @@ func createMockPiholeServer() *httptest.Server {
 			return
 		}
 
+		// Handle adlist endpoints
+		if r.URL.Path == "/api/lists" && r.Method == "GET" {
+			response := adlistsResponse{
+				Lists: []Adlist{
+					{ID: 1, Address: "https://example.com/list1.txt", Enabled: true, Comment: "Test list 1", Type: "block", Groups: []int{0}},
+					{ID: 2, Address: "https://example.com/list2.txt", Enabled: false, Comment: "Test list 2", Type: "allow", Groups: []int{0}},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		if r.URL.Path == "/api/lists" && r.Method == "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(adlistsResponse{
+				Lists: []Adlist{
+					{ID: 3, Address: "https://example.com/new.txt", Enabled: true, Comment: "", Type: "block", Groups: []int{0}},
+				},
+			})
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/api/lists/") && r.Method == "GET" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(adlistsResponse{
+				Lists: []Adlist{
+					{ID: 1, Address: "https://example.com/list1.txt", Enabled: true, Comment: "Test list 1", Type: "block", Groups: []int{0}},
+				},
+			})
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/api/lists/") && r.Method == "PUT" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(adlistsResponse{
+				Lists: []Adlist{
+					{ID: 1, Address: "https://example.com/list1.txt", Enabled: false, Comment: "Updated", Type: "block", Groups: []int{0}},
+				},
+			})
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/api/lists/") && r.Method == "DELETE" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		// Handle legacy admin API for compatibility (still used by some tests)
 		if r.URL.Path == "/admin/api.php" && r.Method == "GET" && r.URL.Query().Has("summary") {
 			summaryResponse := map[string]interface{}{
@@ -785,6 +834,276 @@ func TestPiholeClient_GetWebserverConfig(t *testing.T) {
 		}
 	} else {
 		t.Error("Expected 'api' section in webserver configuration")
+	}
+}
+
+func TestPiholeClient_GetAdlists(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 50, RetryAttempts: 1, RetryBackoffMs: 100}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	adlists, err := client.GetAdlists()
+	if err != nil {
+		t.Fatalf("Failed to get adlists: %v", err)
+	}
+
+	if len(adlists) != 2 {
+		t.Fatalf("Expected 2 adlists, got %d", len(adlists))
+	}
+
+	if adlists[0].ID != 1 {
+		t.Errorf("Expected first adlist ID 1, got %d", adlists[0].ID)
+	}
+	if adlists[0].Address != "https://example.com/list1.txt" {
+		t.Errorf("Unexpected address: %s", adlists[0].Address)
+	}
+	if adlists[0].Type != "block" {
+		t.Errorf("Expected type 'block', got %s", adlists[0].Type)
+	}
+}
+
+func TestPiholeClient_GetAdlist(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 50, RetryAttempts: 1, RetryBackoffMs: 100}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	adlist, err := client.GetAdlist(1)
+	if err != nil {
+		t.Fatalf("Failed to get adlist: %v", err)
+	}
+
+	if adlist == nil {
+		t.Fatal("Expected adlist, got nil")
+	}
+	if adlist.ID != 1 {
+		t.Errorf("Expected ID 1, got %d", adlist.ID)
+	}
+}
+
+func TestPiholeClient_CreateAdlist(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 50, RetryAttempts: 1, RetryBackoffMs: 100}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	adlist, err := client.CreateAdlist("https://example.com/new.txt", "", "block", true, []int{0})
+	if err != nil {
+		t.Fatalf("Failed to create adlist: %v", err)
+	}
+
+	if adlist == nil {
+		t.Fatal("Expected adlist, got nil")
+	}
+	if adlist.ID != 3 {
+		t.Errorf("Expected ID 3, got %d", adlist.ID)
+	}
+}
+
+func TestPiholeClient_UpdateAdlist(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 50, RetryAttempts: 1, RetryBackoffMs: 100}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	adlist, err := client.UpdateAdlist(1, "https://example.com/list1.txt", "Updated", "block", false, []int{0})
+	if err != nil {
+		t.Fatalf("Failed to update adlist: %v", err)
+	}
+
+	if adlist == nil {
+		t.Fatal("Expected adlist, got nil")
+	}
+	if adlist.Comment != "Updated" {
+		t.Errorf("Expected comment 'Updated', got %q", adlist.Comment)
+	}
+}
+
+func TestPiholeClient_DeleteAdlist(t *testing.T) {
+	server := createMockPiholeServer()
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 50, RetryAttempts: 1, RetryBackoffMs: 100}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create Pi-hole client: %v", err)
+	}
+
+	if err := client.DeleteAdlist(1); err != nil {
+		t.Fatalf("Failed to delete adlist: %v", err)
+	}
+}
+
+func TestPiholeClient_GetAdlist_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth" {
+			json.NewEncoder(w).Encode(AuthResponse{Session: struct {
+				Valid    bool   `json:"valid"`
+				Totp     bool   `json:"totp"`
+				Sid      string `json:"sid"`
+				Validity int    `json:"validity"`
+				Message  string `json:"message"`
+				CSRF     string `json:"csrf"`
+			}{Valid: true, Sid: "sid", CSRF: "csrf"}})
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/api/lists/") && r.Method == "GET" {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 10, RetryAttempts: 1, RetryBackoffMs: 50}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	adlist, err := client.GetAdlist(999)
+	if err != nil {
+		t.Fatalf("Expected nil error for 404, got: %v", err)
+	}
+	if adlist != nil {
+		t.Errorf("Expected nil adlist for 404, got: %+v", adlist)
+	}
+}
+
+func TestPiholeClient_GetAdlists_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth" {
+			json.NewEncoder(w).Encode(AuthResponse{Session: struct {
+				Valid    bool   `json:"valid"`
+				Totp     bool   `json:"totp"`
+				Sid      string `json:"sid"`
+				Validity int    `json:"validity"`
+				Message  string `json:"message"`
+				CSRF     string `json:"csrf"`
+			}{Valid: true, Sid: "sid", CSRF: "csrf"}})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+	}))
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 10, RetryAttempts: 1, RetryBackoffMs: 50}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	_, err = client.GetAdlists()
+	if err == nil {
+		t.Error("Expected error for 500 response, got nil")
+	}
+}
+
+func TestPiholeClient_CreateAdlist_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth" {
+			json.NewEncoder(w).Encode(AuthResponse{Session: struct {
+				Valid    bool   `json:"valid"`
+				Totp     bool   `json:"totp"`
+				Sid      string `json:"sid"`
+				Validity int    `json:"validity"`
+				Message  string `json:"message"`
+				CSRF     string `json:"csrf"`
+			}{Valid: true, Sid: "sid", CSRF: "csrf"}})
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "duplicate address"})
+	}))
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 10, RetryAttempts: 1, RetryBackoffMs: 50}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	_, err = client.CreateAdlist("https://example.com/list.txt", "", "block", true, []int{0})
+	if err == nil {
+		t.Error("Expected error for 400 response, got nil")
+	}
+}
+
+func TestPiholeClient_UpdateAdlist_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth" {
+			json.NewEncoder(w).Encode(AuthResponse{Session: struct {
+				Valid    bool   `json:"valid"`
+				Totp     bool   `json:"totp"`
+				Sid      string `json:"sid"`
+				Validity int    `json:"validity"`
+				Message  string `json:"message"`
+				CSRF     string `json:"csrf"`
+			}{Valid: true, Sid: "sid", CSRF: "csrf"}})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+	}))
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 10, RetryAttempts: 1, RetryBackoffMs: 50}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	_, err = client.UpdateAdlist(999, "https://example.com/list.txt", "", "block", true, []int{0})
+	if err == nil {
+		t.Error("Expected error for 404 response, got nil")
+	}
+}
+
+func TestPiholeClient_DeleteAdlist_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth" {
+			json.NewEncoder(w).Encode(AuthResponse{Session: struct {
+				Valid    bool   `json:"valid"`
+				Totp     bool   `json:"totp"`
+				Sid      string `json:"sid"`
+				Validity int    `json:"validity"`
+				Message  string `json:"message"`
+				CSRF     string `json:"csrf"`
+			}{Valid: true, Sid: "sid", CSRF: "csrf"}})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	config := ClientConfig{MaxConnections: 1, RequestDelayMs: 10, RetryAttempts: 1, RetryBackoffMs: 50}
+	client, err := NewPiholeClient(server.URL, "test-password", config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	err = client.DeleteAdlist(1)
+	if err == nil {
+		t.Error("Expected error for 500 response, got nil")
 	}
 }
 
