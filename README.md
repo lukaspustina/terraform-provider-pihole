@@ -313,31 +313,31 @@ TF_ACC=1 go test -v ./internal/provider -run TestAccPiholeProvider -timeout 5m
 
 ```bash
 # Setup development environment (includes automatic linting on commits)
-make setup-dev
+just setup-dev
 
 # Build and install locally (automatically runs linting)
-make install
+just install
 
 # Manual formatting and checks
-make fmt        # Format code with gofmt and goimports  
-make lint       # Run golangci-lint
-make vet        # Run go vet
-make check      # Run all quality checks (fmt + vet + lint + test-unit)
-make check-full # Run comprehensive checks including coverage
+just fmt        # Format code with gofmt and goimports (writes)  
+just lint       # Run golangci-lint
+just vet        # Run go vet
+just adlc-verify # The ADLC gate: fmt-check + vet + lint + test-unit (writes nothing)
+just check      # Everything, including coverage
 ```
 
 #### Automatic Linting
 
 The project is configured for automatic linting:
 
-- **On build**: `make build` automatically runs formatting, vet, and linting
+- **On build**: `just build` automatically runs formatting, vet, and linting
 - **On commit**: Git pre-commit hooks automatically format and lint code
 - **In CI**: GitHub Actions runs comprehensive linting and formatting checks
 
 To enable automatic linting on commits:
 
 ```bash
-make setup-dev
+just setup-dev
 ```
 
 This configures git to run formatting and linting before every commit.

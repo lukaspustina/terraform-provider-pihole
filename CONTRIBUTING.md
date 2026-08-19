@@ -37,12 +37,12 @@ Thank you for your interest in contributing to the Pi-hole Terraform Provider! T
 
 2. Build the provider:
    ```bash
-   make build
+   just build
    ```
 
 3. Install the provider locally:
    ```bash
-   make install
+   just install
    ```
 
 ## Making Changes
@@ -68,16 +68,16 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Run unit tests
-make test-unit
+just test-unit
 
 # Run tests with coverage
-make test-coverage
+just test-coverage
 
 # Run all tests (including acceptance tests with TF_ACC=1)
-make test
+just test
 
 # Run acceptance tests (requires Pi-hole server)
-TF_ACC=1 PIHOLE_URL=http://your-pihole:80 PIHOLE_PASSWORD=your-password make test-acc
+TF_ACC=1 PIHOLE_URL=http://your-pihole:80 PIHOLE_PASSWORD=your-password just test-acc
 ```
 
 ### Test Requirements
@@ -99,7 +99,7 @@ docker run -d \
   pihole/pihole:latest
 
 # Run acceptance tests
-TF_ACC=1 PIHOLE_URL=http://localhost:8080 PIHOLE_PASSWORD=test-password make test-acc
+TF_ACC=1 PIHOLE_URL=http://localhost:8080 PIHOLE_PASSWORD=test-password just test-acc
 
 # Cleanup
 docker stop pihole-test && docker rm pihole-test
@@ -117,8 +117,8 @@ docker stop pihole-test && docker rm pihole-test
 
 2. **Run quality checks**:
    ```bash
-   make check-full  # Runs fmt, vet, and tests with coverage
-   make lint        # Run golangci-lint
+   just adlc-verify # fmt-check, vet, lint, unit tests — writes nothing
+   just check       # the same plus coverage over all tests
    ```
 
 3. **Create a pull request** with:

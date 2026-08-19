@@ -186,27 +186,27 @@ The provider includes comprehensive unit tests that can be run without a live Pi
 
 ```bash
 # Run all tests
-make test
+just test
 
 # Run specific tests
 go test -v ./internal/provider -run TestConfigResource
 
 # Format code
-make fmt
+just fmt
 
-# Run linter
-make check
+# Run every check (writes nothing)
+just adlc-verify
 ```
 
 ### Local Development
 
 ```bash
 # Build the provider
-make build
+just build
 
 # Install locally for testing
-make install
+just install
 
 # Run in development mode
-make dev
+just dev
 ```

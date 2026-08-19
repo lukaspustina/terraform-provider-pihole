@@ -42,13 +42,14 @@ The provider authenticates using:
 
 ## Development Commands
 
-- `make build` - Build the provider binary
-- `make install` - Install the provider locally for testing  
-- `make test` - Run unit tests
-- `make fmt` - Format Go code
-- `make vet` - Run go vet for static analysis
-- `make check` - Run all quality checks (fmt, vet, test)
-- `make dev` - Build and run provider in debug mode
+- `just build` - Build the provider binary
+- `just install` - Install the provider locally for testing  
+- `just test-unit` - Run unit tests (`just test` runs all of them)
+- `just fmt` - Format Go code (writes); `just fmt-check` only reports
+- `just vet` - Run go vet for static analysis
+- `just adlc-verify` - The ADLC gate: fmt-check, vet, lint, unit tests — writes nothing
+- `just check` - Everything, with coverage
+- `just dev` - Build and run provider in debug mode
 - `go mod tidy` - Update dependencies
 
 ## Project Structure
@@ -103,7 +104,7 @@ The provider uses the Terraform Plugin Framework and implements:
 ## Development Best Practices
 
 - Always run linter and tests using the Makefile
-- Use `make fmt` to format code before committing
-- Run `make check` to run all quality checks (fmt, vet, test)
+- Use `just fmt` to format code before committing
+- Run `just adlc-verify` before every commit; it changes no files
 - Ensure all tests pass before submitting changes
 - Follow existing code patterns and naming conventions

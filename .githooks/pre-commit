@@ -16,15 +16,15 @@ fi
 
 # Format code
 echo "Formatting Go code..."
-make fmt
+just fmt
 
 # Run linting
 echo "Running linter..."
-make lint
+just lint
 
 # Run vet
 echo "Running go vet..."
-make vet
+just vet
 
 # Re-add only the files that were originally staged (in case formatting changed them)
 echo "$STAGED_FILES" | xargs git add

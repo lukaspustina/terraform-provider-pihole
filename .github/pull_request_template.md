@@ -25,7 +25,7 @@
 
 ## Testing
 <!-- Describe the testing performed -->
-- [ ] Unit tests pass (`make test-unit`)
+- [ ] Unit tests pass (`just test-unit`)
 - [ ] Code coverage maintained/improved
 - [ ] Manual testing performed
 - [ ] Acceptance tests pass (if applicable)

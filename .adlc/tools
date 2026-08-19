@@ -1,0 +1,4 @@
+# What `just adlc-verify` invokes. Read by `adlc audit` with `command -v`.
+go
+goimports        # fmt-check; installed via `go install golang.org/x/tools/cmd/goimports@latest`
+golangci-lint
