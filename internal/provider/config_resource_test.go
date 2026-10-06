@@ -68,9 +68,10 @@ func TestConfigResource_BooleanValueConversion(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			var result interface{} = tc.input
-			if tc.input == "true" || tc.input == "TRUE" || tc.input == "True" {
+			switch tc.input {
+			case "true", "TRUE", "True":
 				result = true
-			} else if tc.input == "false" || tc.input == "FALSE" || tc.input == "False" {
+			case "false", "FALSE", "False":
 				result = false
 			}
 

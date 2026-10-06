@@ -35,7 +35,7 @@ func createMockPiholeServer() *httptest.Server {
 				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(authResponse)
+			_ = json.NewEncoder(w).Encode(authResponse)
 			return
 		}
 
@@ -53,7 +53,7 @@ func createMockPiholeServer() *httptest.Server {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -70,35 +70,35 @@ func createMockPiholeServer() *httptest.Server {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 			return
 		}
 
 		// Handle DNS record creation/modification
 		if strings.HasPrefix(r.URL.Path, "/api/config/dns/hosts/") && r.Method == "PUT" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
 			return
 		}
 
 		// Handle CNAME record creation/modification
 		if strings.HasPrefix(r.URL.Path, "/api/config/dns/cnameRecords/") && r.Method == "PUT" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
 			return
 		}
 
 		// Handle DNS record deletion
 		if strings.HasPrefix(r.URL.Path, "/api/config/dns/hosts/") && r.Method == "DELETE" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
 			return
 		}
 
 		// Handle CNAME record deletion
 		if strings.HasPrefix(r.URL.Path, "/api/config/dns/cnameRecords/") && r.Method == "DELETE" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
 			return
 		}
 
@@ -114,13 +114,13 @@ func createMockPiholeServer() *httptest.Server {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 			return
 		}
 
 		if r.URL.Path == "/api/config/webserver" && r.Method == "PUT" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "success"})
 			return
 		}
 
@@ -133,7 +133,7 @@ func createMockPiholeServer() *httptest.Server {
 				"ads_percentage_today":  10.5,
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(summaryResponse)
+			_ = json.NewEncoder(w).Encode(summaryResponse)
 			return
 		}
 
@@ -144,14 +144,14 @@ func createMockPiholeServer() *httptest.Server {
 			if auth := r.URL.Query().Get("auth"); auth != "" {
 				// Return success for any request with auth
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]interface{}{"status": "ok"})
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "ok"})
 				return
 			}
 		}
 
 		// Default 404
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "not found"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "not found"})
 	}))
 }
 
@@ -400,7 +400,7 @@ func TestPiholeClient_RetryLogic(t *testing.T) {
 				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(authResponse)
+			_ = json.NewEncoder(w).Encode(authResponse)
 			return
 		}
 	}))
@@ -453,7 +453,7 @@ func TestPiholeClient_URLEncoding(t *testing.T) {
 				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(authResponse)
+			_ = json.NewEncoder(w).Encode(authResponse)
 			return
 		}
 
@@ -466,7 +466,7 @@ func TestPiholeClient_URLEncoding(t *testing.T) {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -486,7 +486,7 @@ func TestPiholeClient_URLEncoding(t *testing.T) {
 			}
 
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]interface{}{"status": "created"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "created"})
 			return
 		}
 
@@ -646,7 +646,7 @@ func TestTLSConfiguration_HTTPSServer(t *testing.T) {
 				Took: 0.001,
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(authResponse)
+			_ = json.NewEncoder(w).Encode(authResponse)
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)

@@ -132,7 +132,7 @@ func (c *PiholeClient) authenticateWithRetry(retries int) error {
 			}
 			return fmt.Errorf("failed to authenticate with Pi-hole: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -254,7 +254,7 @@ func (c *PiholeClient) GetDNSRecords() ([]DNSRecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DNS records: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -323,7 +323,7 @@ func (c *PiholeClient) CreateDNSRecord(domain, ip string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create DNS record: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 
@@ -377,7 +377,7 @@ func (c *PiholeClient) DeleteDNSRecord(domain string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete DNS record: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 
@@ -393,7 +393,7 @@ func (c *PiholeClient) GetCNAMERecords() ([]CNAMERecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get CNAME records: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -462,7 +462,7 @@ func (c *PiholeClient) CreateCNAMERecord(domain, target string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create CNAME record: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 
@@ -516,7 +516,7 @@ func (c *PiholeClient) DeleteCNAMERecord(domain string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete CNAME record: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 
@@ -548,7 +548,7 @@ func (c *PiholeClient) GetConfig(configKey string) (*ConfigSetting, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configuration '%s': %w", configKey, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -662,7 +662,7 @@ func (c *PiholeClient) GetWebserverConfig() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get webserver configuration: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -696,7 +696,7 @@ func (c *PiholeClient) SetWebserverConfig(config map[string]interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to set webserver configuration: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 

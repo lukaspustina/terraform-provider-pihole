@@ -75,7 +75,7 @@ func clearClientCache() {
 
 	// Close all cached clients
 	for _, client := range clientCache {
-		client.Close()
+		_ = client.Close()
 	}
 
 	// Clear the cache
