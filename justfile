@@ -138,3 +138,12 @@ release-test:
 setup-dev:
     git config core.hooksPath .githooks
     @echo "Git hooks configured to use .githooks/"
+
+# The Go tools the contract and mutation testing call, pinned, into Go's bin directory (on PATH):
+# goimports for fmt-check, golangci-lint at the version CI uses (built with a Go that reads the local toolchain's export data), gremlins for adlc mutate.
+
+# Install the pinned Go tools the contract needs.
+adlc-setup:
+    go install golang.org/x/tools/cmd/goimports@v0.51.0
+    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+    go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
