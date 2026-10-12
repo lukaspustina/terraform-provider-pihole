@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Adlist Management**: Added `pihole_adlist` resource and `pihole_adlists` / `pihole_adlist` data sources for managing Pi-hole block and allow lists
+  - Create, update, delete, and import adlists via the Pi-hole v6 `/api/lists` endpoint
+  - Support for both `block` and `allow` list types
+  - Configurable `enabled`, `comment`, and `groups` attributes with sensible defaults
+  - Full unit and acceptance test coverage including error-path and edge-case tests
+
 ## [0.3.0] - 24.07.2025
 
 ### Added

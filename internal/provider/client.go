@@ -687,6 +687,182 @@ func (c *PiholeClient) GetWebserverConfig() (map[string]interface{}, error) {
 	return apiResp.Config.Webserver, nil
 }
 
+// Adlist represents a Pi-hole adlist (block or allow list)
+type Adlist struct {
+	ID      int    `json:"id"`
+	Address string `json:"address"`
+	Enabled bool   `json:"enabled"`
+	Comment string `json:"comment"`
+	Type    string `json:"type"`
+	Groups  []int  `json:"groups"`
+}
+
+type adlistRequest struct {
+	Address string `json:"address"`
+	Enabled bool   `json:"enabled"`
+	Comment string `json:"comment"`
+	Type    string `json:"type"`
+	Groups  []int  `json:"groups"`
+}
+
+type adlistsResponse struct {
+	Lists []Adlist `json:"lists"`
+}
+
+func (c *PiholeClient) GetAdlists() ([]Adlist, error) {
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	resp, err := c.makeRequest("GET", "/api/lists", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get adlists: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read adlists response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get adlists, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var apiResp adlistsResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal adlists: %w, body: %s", err, string(body))
+	}
+
+	return apiResp.Lists, nil
+}
+
+func (c *PiholeClient) GetAdlist(id int) (*Adlist, error) {
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	resp, err := c.makeRequest("GET", fmt.Sprintf("/api/lists/%d", id), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get adlist %d: %w", id, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read adlist response: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get adlist %d, status: %d, body: %s", id, resp.StatusCode, string(body))
+	}
+
+	var apiResp adlistsResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal adlist: %w, body: %s", err, string(body))
+	}
+
+	if len(apiResp.Lists) == 0 {
+		return nil, nil
+	}
+
+	return &apiResp.Lists[0], nil
+}
+
+func (c *PiholeClient) CreateAdlist(address, comment, listType string, enabled bool, groups []int) (*Adlist, error) {
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	reqBody := adlistRequest{
+		Address: address,
+		Enabled: enabled,
+		Comment: comment,
+		Type:    listType,
+		Groups:  groups,
+	}
+
+	resp, err := c.makeRequest("POST", "/api/lists", reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create adlist: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read create adlist response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to create adlist, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var apiResp adlistsResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal created adlist: %w, body: %s", err, string(body))
+	}
+
+	if len(apiResp.Lists) == 0 {
+		return nil, fmt.Errorf("create adlist returned empty response")
+	}
+
+	return &apiResp.Lists[0], nil
+}
+
+func (c *PiholeClient) UpdateAdlist(id int, address, comment, listType string, enabled bool, groups []int) (*Adlist, error) {
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	reqBody := adlistRequest{
+		Address: address,
+		Enabled: enabled,
+		Comment: comment,
+		Type:    listType,
+		Groups:  groups,
+	}
+
+	resp, err := c.makeRequest("PUT", fmt.Sprintf("/api/lists/%d", id), reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update adlist %d: %w", id, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read update adlist response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to update adlist %d, status: %d, body: %s", id, resp.StatusCode, string(body))
+	}
+
+	var apiResp adlistsResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal updated adlist: %w, body: %s", err, string(body))
+	}
+
+	if len(apiResp.Lists) == 0 {
+		return nil, fmt.Errorf("update adlist returned empty response")
+	}
+
+	return &apiResp.Lists[0], nil
+}
+
+func (c *PiholeClient) DeleteAdlist(id int) error {
+	time.Sleep(time.Duration(c.Config.RequestDelayMs) * time.Millisecond)
+
+	resp, err := c.makeRequest("DELETE", fmt.Sprintf("/api/lists/%d", id), nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete adlist %d: %w", id, err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
+	return fmt.Errorf("failed to delete adlist %d, status: %d, body: %s", id, resp.StatusCode, string(body))
+}
+
 // SetWebserverConfig updates webserver configuration settings
 func (c *PiholeClient) SetWebserverConfig(config map[string]interface{}) error {
 	// Add delay to prevent overwhelming the API
