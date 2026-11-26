@@ -23,6 +23,20 @@ linters:
     misspell:
       locale: US
 
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
+      - text: "Error return value.*Encode.*is not checked"
+        linters:
+          - errcheck
+
+      - text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+        linters:
+          - errcheck
+
 formatters:
   enable:
     - gofmt
@@ -34,17 +48,5 @@ formatters:
         - github.com/lukaspustina/terraform-provider-pihole
 
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-
-    - text: "Error return value.*Encode.*is not checked"
-      linters:
-        - errcheck
-
-  exclude:
-    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
-
   max-issues-per-linter: 10
   max-same-issues: 3
