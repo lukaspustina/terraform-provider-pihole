@@ -322,7 +322,7 @@ just install
 just fmt        # Format code with gofmt and goimports (writes)  
 just lint       # Run golangci-lint
 just vet        # Run go vet
-just adlc-verify # The ADLC gate: fmt-check + vet + lint + test-unit (writes nothing)
+just verify      # The gate: fmt-check + vet + lint + test-unit (writes nothing)
 just check      # Everything, including coverage
 ```
 

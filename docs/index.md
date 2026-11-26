@@ -195,7 +195,7 @@ go test -v ./internal/provider -run TestConfigResource
 just fmt
 
 # Run every check (writes nothing)
-just adlc-verify
+just verify
 ```
 
 ### Local Development
