@@ -19,7 +19,7 @@ jobs:
     - name: Validate PR commit messages
       run: |
         # Check all commits in the PR for conventional commit format
-        COMMITS=$(git log --format="%s" origin/${{ github.base_ref }}..HEAD)
+        COMMITS=$(git log --no-merges --format="%s" origin/${{ github.base_ref }}..HEAD)
         PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|deps)(\(.+\))?!?: .+"
         FAILED=0
 
