@@ -117,7 +117,7 @@ docker stop pihole-test && docker rm pihole-test
 
 2. **Run quality checks**:
    ```bash
-   just adlc-verify # fmt-check, vet, lint, unit tests — writes nothing
+   just verify      # fmt-check, vet, lint, unit tests — writes nothing
    just check       # the same plus coverage over all tests
    ```
 
